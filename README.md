@@ -24,7 +24,7 @@
 ### 🌐 Онлайн (без установки)
 
 - **Мгновенно, без настроек:** https://raw.githack.com/pavelb-coder/sim-vr/main/index.html
-- **GitHub Pages:** https://pavelb-coder.github.io/sim-vr/ — публикуется автоматически при каждом push на `main` (workflow `.github/workflows/pages.yml`, включает Pages сам). Если Pages ещё не поднялся, включите вручную: **Settings → Pages → Build and deployment → Source: GitHub Actions** (или Deploy from a branch → `main` / `/ (root)`)
+- **GitHub Pages:** https://pavelb-coder.github.io/sim-vr/ — включается один раз вручную: **Settings → Pages → Build and deployment → Source: Deploy from a branch → Branch: `main`, folder: `/ (root)` → Save**. Дальше каждый push на `main` публикуется автоматически. (Включение из CI невозможно: `GITHUB_TOKEN` не имеет прав admin на репозиторий.)
 - HTTPS-страница = работает WebXR в браузере шлема (Quest / Pico)
 
 ### 🪟 Windows
@@ -53,7 +53,6 @@
 ## Структура
 
 ```
-.github/workflows/pages.yml — автопубликация на GitHub Pages при push на main
 start-windows.bat / start-ubuntu.sh / start-macos.sh — локальный запуск на порту 8088
 ```
 
