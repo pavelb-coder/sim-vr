@@ -19,12 +19,43 @@
 
 ![Блоки кода](docs/screenshot-blocks.png)
 
-## Запуск
+## ▶️ Запуск
 
-Открой `index.html` в браузере. Всё встроено, сборка не нужна.
+### 🌐 Онлайн (без установки)
 
-### GitHub Pages (рекомендуется — тогда работает и WebXR)
-Settings → Pages → Source: `main` / `/ (root)` → https://pavelb-coder.github.io/sim-vr/
+- **Мгновенно, без настроек:** https://raw.githack.com/pavelb-coder/sim-vr/main/index.html
+- **GitHub Pages:** https://pavelb-coder.github.io/sim-vr/ — публикуется автоматически при каждом push на `main` (workflow `.github/workflows/pages.yml`, включает Pages сам). Если Pages ещё не поднялся, включите вручную: **Settings → Pages → Build and deployment → Source: GitHub Actions** (или Deploy from a branch → `main` / `/ (root)`)
+- HTTPS-страница = работает WebXR в браузере шлема (Quest / Pico)
+
+### 🪟 Windows
+
+1. Установите [Python 3](https://www.python.org/downloads/) (если нет)
+2. Двойной клик по **`start-windows.bat`** → откроется `http://localhost:8088`
+
+(можно и просто двойным кликом по `index.html` — сцена запустится из файла, но без WebXR)
+
+### 🐧 Ubuntu / Linux
+
+```bash
+./start-ubuntu.sh          # или: PORT=8088 ./start-ubuntu.sh
+```
+→ http://localhost:8088 (Ctrl+C — остановить). Нужен только `python3` (`sudo apt install python3`).
+
+### 🍎 macOS
+
+```bash
+./start-macos.sh           # → http://localhost:8088
+```
+
+**Порт по умолчанию — `8088`** (задан в скриптах и в этом README; меняется переменной `PORT`).
+`localhost:8088` — это secure context, поэтому WebXR доступен и без HTTPS. Для доступа с другого устройства в той же сети: `http://<IP-компьютера>:8088` (WebXR на внешнем IP не работает — только просмотр).
+
+## Структура
+
+```
+.github/workflows/pages.yml — автопубликация на GitHub Pages при push на main
+start-windows.bat / start-ubuntu.sh / start-macos.sh — локальный запуск на порту 8088
+```
 
 ## Управление
 
