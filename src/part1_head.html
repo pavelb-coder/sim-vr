@@ -1,0 +1,1601 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>УрокVR — VR-песочница · квантум</title>
+<meta name="description" content="Бесплатная браузерная лаборатория виртуальной реальности для школьного квантума: собираешь 3D-сцену, даёшь объектам поведение — без установки и без шлема.">
+<!--INLINE:three.min.js-->
+<!--INLINE:blockly_compressed.js-->
+<!--INLINE:blocks_compressed.js-->
+<!--INLINE:javascript_compressed.js-->
+<!--INLINE:ru.js-->
+<style>
+:root{
+  --bg:#0b0f1a; --panel:#11172a; --panel2:#161f36; --panel3:#1d2740;
+  --line:#25304e; --line2:#324066;
+  --text:#e9edfa; --dim:#8f9cc0; --dim2:#5d6a8f;
+  --accent:#7c5cff; --accent2:#22d3ee; --accent3:#f472b6;
+  --ok:#34d399; --warn:#fbbf24; --err:#fb7185;
+  --grad:linear-gradient(135deg,#7c5cff 0%,#22d3ee 100%);
+  --r:14px; --shadow:0 18px 50px rgba(0,0,0,.45);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{
+  background:radial-gradient(1200px 700px at 70% -10%,#1a2140 0%,var(--bg) 55%) fixed;
+  color:var(--text); font:14px/1.45 "Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
+  display:flex; flex-direction:column; user-select:none; -webkit-user-select:none;
+}
+button{font-family:inherit;color:inherit;background:none;border:none;cursor:pointer}
+input,select,textarea{font-family:inherit;color:var(--text)}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:#2c3757;border-radius:8px}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ══ TOP BAR ══════════════════════════════════════════════════════════ */
+#topbar{
+  height:58px;flex:0 0 58px;display:flex;align-items:center;gap:8px;padding:0 14px;
+  background:rgba(13,17,31,.85);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);
+  position:relative;z-index:60;
+}
+.logo{display:flex;align-items:center;gap:10px;padding-right:12px;border-right:1px solid var(--line);margin-right:2px;height:38px}
+.logo-badge{width:36px;height:36px;border-radius:11px;background:var(--grad);display:grid;place-items:center;font-size:20px;box-shadow:0 4px 14px rgba(124,92,255,.45)}
+.logo-name{font-weight:800;font-size:16px;letter-spacing:.2px;line-height:1.1}
+.logo-name b{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.logo-sub{font-size:10px;color:var(--dim);letter-spacing:1.1px;text-transform:uppercase}
+.tbtn{
+  height:36px;padding:0 13px;border-radius:10px;display:inline-flex;align-items:center;gap:7px;
+  font-size:13px;font-weight:600;color:#cdd6f2;border:1px solid transparent;transition:.15s;white-space:nowrap;
+}
+.tbtn:hover{background:var(--panel3);border-color:var(--line2)}
+.tbtn.toggled{background:#1e2a4a;border-color:var(--accent);color:#c9b8ff;box-shadow:inset 0 0 12px rgba(124,92,255,.25)}
+.tbtn.primary{background:var(--grad);color:#0b0f1a;font-weight:800;box-shadow:0 4px 16px rgba(34,211,238,.35)}
+.tbtn.primary:hover{filter:brightness(1.08)}
+.tbtn.primary:disabled{opacity:.55;cursor:default;filter:none}
+.tbtn.stop{background:#3a1524;color:#ffb3c0;border:1px solid #57233a}
+.tbtn.stop:hover{background:#4a1a2d}
+.tbtn.vr{background:#10233a;border:1px solid #1f4b6e;color:#7fd7ff}
+.tbtn.vr:hover{background:#16304b}
+.tbtn.icon{width:36px;padding:0;justify-content:center;font-size:16px}
+.tsep{width:1px;height:26px;background:var(--line);margin:0 2px}
+.spacer{flex:1}
+.ver{font-size:10.5px;color:var(--dim2);letter-spacing:.4px;text-align:right;line-height:1.35}
+
+/* dropdowns */
+.menu-wrap{position:relative}
+.menu{
+  position:absolute;top:44px;left:0;min-width:250px;background:var(--panel2);border:1px solid var(--line2);
+  border-radius:12px;box-shadow:var(--shadow);padding:8px;display:none;z-index:100;
+}
+.menu.open{display:block;animation:pop .18s ease}
+@keyframes pop{from{opacity:0;transform:translateY(-6px) scale(.97)}to{opacity:1;transform:none}}
+.menu-title{font-size:10.5px;text-transform:uppercase;letter-spacing:1px;color:var(--dim);padding:6px 8px 4px}
+.menu-item{display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:8px 10px;border-radius:9px;font-size:13px;color:#dbe2f6}
+.menu-item:hover{background:var(--panel3)}
+.menu-item small{margin-left:auto;color:var(--dim2);font-size:10.5px}
+.menu-sep{height:1px;background:var(--line);margin:6px 4px}
+.save-row{display:flex;gap:6px;padding:6px 8px}
+.save-row input{flex:1;min-width:0;height:32px;background:var(--panel);border:1px solid var(--line2);border-radius:8px;padding:0 10px;font-size:13px;outline:none}
+.save-row input:focus{border-color:var(--accent)}
+.save-list{max-height:180px;overflow:auto}
+.save-item{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:8px;font-size:12.5px}
+.save-item:hover{background:var(--panel3)}
+.save-item .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.save-item .dt{color:var(--dim2);font-size:10px}
+.save-item button{color:var(--dim);font-size:15px;padding:2px 6px;border-radius:6px}
+.save-item button:hover{color:var(--err);background:#2a1622}
+.empty-saves{color:var(--dim2);font-size:12px;text-align:center;padding:10px}
+
+/* ══ MAIN ROW ═════════════════════════════════════════════════════════ */
+#main{flex:1;display:flex;min-height:0;position:relative}
+
+/* ── left panel ── */
+#left{
+  width:236px;flex:0 0 236px;background:var(--panel);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;min-height:0;z-index:20;
+}
+.tabs{display:flex;gap:4px;padding:10px 10px 0;border-bottom:1px solid var(--line)}
+.tab{
+  flex:1;height:34px;border-radius:9px 9px 0 0;font-size:12.5px;font-weight:700;color:var(--dim);
+  border-bottom:2px solid transparent;
+}
+.tab.active{color:#fff;background:var(--panel2);border-bottom-color:var(--accent2)}
+.panel-body{flex:1;overflow:auto;padding:12px}
+.panel-body.hidden{display:none}
+.lib-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.lib-item{
+  background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:9px 4px 7px;
+  display:flex;flex-direction:column;align-items:center;gap:5px;transition:.15s;
+}
+.lib-item:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 18px rgba(124,92,255,.25)}
+.lib-item .ic{font-size:26px;filter:drop-shadow(0 3px 4px rgba(0,0,0,.4))}
+.lib-item .nm{font-size:10.5px;color:#c3cce8;text-align:center;line-height:1.25}
+.lib-hint{margin-top:11px;font-size:11px;color:var(--dim2);background:var(--panel2);border:1px dashed var(--line2);border-radius:10px;padding:8px 10px;line-height:1.5}
+
+.obj-row{
+  display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:9px;cursor:pointer;border:1px solid transparent;margin-bottom:3px;
+}
+.obj-row:hover{background:var(--panel2)}
+.obj-row.selected{background:#1d2742;border-color:var(--accent)}
+.dot{width:10px;height:10px;border-radius:50%;flex:0 0 10px;border:1px solid rgba(255,255,255,.35)}
+.obj-row .nm{font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.obj-row button{font-size:13px;color:var(--dim);padding:2px 5px;border-radius:6px}
+.obj-row button:hover{color:#fff;background:var(--panel3)}
+.scene-empty{color:var(--dim2);font-size:12px;text-align:center;padding:26px 10px;line-height:1.6}
+
+/* ── viewport column ── */
+#center{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;position:relative}
+#viewport{flex:1;position:relative;min-height:0;overflow:hidden}
+#glcanvas{display:block;width:100%;height:100%;outline:none;touch-action:none}
+.vp-overlay{position:absolute;z-index:5;pointer-events:none}
+.vp-hint{
+  left:14px;bottom:12px;background:rgba(10,13,24,.72);border:1px solid var(--line2);border-radius:10px;
+  padding:6px 11px;font-size:11px;color:#a9b4d8;backdrop-filter:blur(6px);max-width:340px;
+}
+.vp-cross{
+  left:50%;top:50%;width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.85);
+  transform:translate(-50%,-50%);box-shadow:0 0 6px rgba(0,0,0,.8);display:none;
+}
+.vp-tool{
+  left:14px;top:12px;display:flex;gap:6px;pointer-events:auto;
+}
+.vp-tool button{
+  height:34px;padding:0 12px;border-radius:10px;font-size:12px;font-weight:700;color:#cdd6f2;
+  background:rgba(13,17,31,.72);border:1px solid var(--line2);backdrop-filter:blur(6px);
+}
+.vp-tool button.active{background:var(--accent);border-color:#9d85ff;color:#0b0f1a}
+#fpsBadge{
+  top:12px;right:14px;background:rgba(10,13,24,.72);border:1px solid var(--line2);border-radius:10px;
+  padding:5px 11px;font-size:12px;font-weight:800;color:var(--ok);backdrop-filter:blur(6px);
+  font-variant-numeric:tabular-nums;letter-spacing:.5px;
+}
+#fpsBadge small{color:var(--dim);font-weight:600}
+#saySplash{
+  left:50%;top:16%;transform:translate(-50%,-16px);background:rgba(10,13,24,.78);border:1px solid var(--accent2);
+  color:#c9f6ff;font-size:clamp(17px,2.4vw,26px);font-weight:800;border-radius:14px;padding:12px 26px;
+  opacity:0;transition:.3s;max-width:70%;text-align:center;box-shadow:0 0 40px rgba(34,211,238,.3);letter-spacing:.3px;
+}
+#saySplash.show{opacity:1;transform:translate(-50%,0)}
+
+/* ── right panel ── */
+#right{
+  width:248px;flex:0 0 248px;background:var(--panel);border-left:1px solid var(--line);
+  display:flex;flex-direction:column;min-height:0;overflow:auto;z-index:20;
+}
+.rp-head{padding:13px 14px 10px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px}
+.rp-head h2{font-size:12px;text-transform:uppercase;letter-spacing:1.2px;color:var(--dim)}
+.rp-body{padding:13px 14px}
+.rp-empty{color:var(--dim2);font-size:12px;text-align:center;padding:30px 8px;line-height:1.7}
+.field{margin-bottom:11px}
+.field label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--dim);margin-bottom:5px}
+.field input[type=text]{width:100%;height:32px;background:var(--panel2);border:1px solid var(--line2);border-radius:8px;padding:0 10px;font-size:13px;outline:none}
+.field input[type=text]:focus{border-color:var(--accent)}
+.xyz{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.xyz div{position:relative}
+.xyz span{position:absolute;left:7px;top:9px;font-size:10px;color:var(--dim2);pointer-events:none}
+.xyz input{width:100%;height:33px;background:var(--panel2);border:1px solid var(--line2);border-radius:8px;padding:0 6px 0 18px;font-size:12px;outline:none;font-variant-numeric:tabular-nums}
+.xyz input:focus{border-color:var(--accent)}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.two-col input,.two-col select{width:100%;height:33px;background:var(--panel2);border:1px solid var(--line2);border-radius:8px;padding:0 8px;font-size:12px;outline:none}
+input[type=range]{width:100%;accent-color:var(--accent)}
+input[type=color]{width:100%;height:34px;border:1px solid var(--line2);border-radius:8px;background:var(--panel2);padding:2px;cursor:pointer}
+.switch{display:flex;align-items:center;gap:9px;cursor:pointer;padding:6px 0}
+.switch input{accent-color:var(--accent);width:16px;height:16px;cursor:pointer}
+.switch span{font-size:12.5px;color:#c3cce8}
+.rp-actions{display:flex;gap:8px;margin-top:14px}
+.rp-actions button{flex:1;height:34px;border-radius:9px;font-size:12px;font-weight:700}
+.btn-danger{background:#2c1420;color:#ff9fb0;border:1px solid #57233a}
+.btn-danger:hover{background:#3a1a29}
+.btn-ghost{background:var(--panel2);border:1px solid var(--line2);color:#c3cce8}
+.btn-ghost:hover{border-color:var(--accent)}
+
+/* ── bottom drawer ── */
+#drawer{
+  height:0;flex:0 0 auto;border-top:1px solid var(--line);background:var(--panel);
+  display:flex;flex-direction:column;transition:height .22s ease;overflow:hidden;z-index:15;
+}
+#drawer.open{height:305px}
+.drawer-bar{display:flex;align-items:center;gap:4px;padding:6px 12px 0;border-bottom:1px solid var(--line)}
+.dtab{
+  height:32px;padding:0 14px;border-radius:9px 9px 0 0;font-size:12.5px;font-weight:700;color:var(--dim);
+  display:inline-flex;align-items:center;gap:7px;border-bottom:2px solid transparent;
+}
+.dtab.active{color:#fff;background:var(--panel2);border-bottom-color:var(--accent2)}
+.badge{min-width:19px;height:17px;padding:0 5px;border-radius:8px;background:var(--err);color:#1a0208;font-size:10px;font-weight:800;display:none;align-items:center;justify-content:center}
+.badge.on{display:inline-flex}
+.drawer-collapse{margin-left:auto;color:var(--dim);font-size:17px;padding:4px 10px;border-radius:8px}
+.drawer-collapse:hover{background:var(--panel3);color:#fff}
+#drawerOpenFab{
+  position:absolute;bottom:14px;right:16px;z-index:30;height:40px;padding:0 16px;border-radius:20px;
+  background:var(--grad);color:#0b0f1a;font-weight:800;font-size:12.5px;box-shadow:0 8px 24px rgba(124,92,255,.45);
+  display:none;align-items:center;gap:8px;
+}
+#drawer.open ~ #drawerOpenFab{display:none}
+.drawer-body{flex:1;min-height:0;position:relative}
+.dtab-page{position:absolute;inset:0;display:none}
+.dtab-page.active{display:block}
+#blocklyDiv{width:100%;height:100%}
+#consolePage{display:none;flex-direction:column}
+#consolePage.active{display:flex}
+.console-tools{display:flex;gap:8px;align-items:center;padding:7px 12px;border-bottom:1px solid var(--line)}
+.console-tools span{font-size:11px;color:var(--dim)}
+.console-tools button{font-size:11px;color:#a9b4d8;border:1px solid var(--line2);padding:4px 10px;border-radius:7px}
+.console-tools button:hover{background:var(--panel3);color:#fff}
+#consoleLog{flex:1;overflow:auto;padding:8px 12px;font-family:"Cascadia Mono",Consolas,Menlo,monospace;font-size:12px;user-select:text;-webkit-user-select:text}
+.log-line{display:flex;gap:10px;padding:2.5px 2px;border-bottom:1px solid rgba(255,255,255,.03);white-space:pre-wrap;word-break:break-word}
+.log-time{color:var(--dim2);flex:0 0 auto}
+.log-info{color:#dbe2f6}.log-ok{color:var(--ok)}.log-warn{color:var(--warn)}.log-err{color:var(--err)}.log-cmd{color:var(--accent2)}
+
+#oscPage.active{display:flex;flex-direction:row;gap:12px;padding:10px 12px}
+#oscCanvas{flex:1;min-width:0;background:#050a16;border:1px solid var(--line2);border-radius:12px;height:100%}
+.osc-side{width:190px;flex:0 0 190px;display:flex;flex-direction:column;gap:8px;overflow:auto}
+.stat{background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:8px 11px}
+.stat .k{font-size:9.5px;text-transform:uppercase;letter-spacing:1px;color:var(--dim)}
+.stat .v{font-size:21px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:2px}
+.stat .v small{font-size:10.5px;color:var(--dim);font-weight:600}
+.stat .v.ok{color:var(--ok)} .stat .v.warn{color:var(--warn)} .stat .v.err{color:var(--err)}
+
+/* ══ MODALS & TOASTS ══════════════════════════════════════════════════ */
+#modalOverlay{
+  position:fixed;inset:0;background:rgba(4,6,12,.62);backdrop-filter:blur(3px);z-index:200;
+  display:none;align-items:center;justify-content:center;padding:20px;
+}
+#modalOverlay.open{display:flex}
+.modal{
+  width:min(560px,100%);max-height:86vh;overflow:auto;background:var(--panel2);border:1px solid var(--line2);
+  border-radius:18px;box-shadow:var(--shadow);animation:pop .22s ease;
+}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 0}
+.modal-head h3{font-size:17px}
+.modal-x{color:var(--dim);font-size:22px;line-height:1;padding:2px 8px;border-radius:8px}
+.modal-x:hover{color:#fff;background:var(--panel3)}
+.modal-body{padding:12px 20px;color:#c3cce8;font-size:13.5px;line-height:1.6;user-select:text;-webkit-user-select:text}
+.modal-body kbd{background:#0d1322;border:1px solid var(--line2);border-bottom-width:2px;border-radius:5px;padding:1px 6px;font-size:11px}
+.modal-body h4{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--dim);margin:14px 0 6px}
+.modal-body li{margin:4px 0 4px 18px}
+.modal-foot{display:flex;justify-content:flex-end;gap:10px;padding:0 20px 18px}
+.modal-foot button{height:38px;padding:0 18px;border-radius:10px;font-weight:700;font-size:13px}
+.btn-primary{background:var(--grad);color:#0b0f1a;font-weight:800}
+.btn-plain{background:var(--panel3);color:#c3cce8}
+#toast{
+  position:fixed;bottom:26px;left:50%;transform:translate(-50%,14px);z-index:300;background:#0d1322;
+  border:1px solid var(--accent);color:#dccfff;padding:10px 20px;border-radius:12px;font-size:13px;font-weight:600;
+  opacity:0;pointer-events:none;transition:.25s;box-shadow:0 10px 30px rgba(0,0,0,.5);max-width:80%;text-align:center;
+}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+@media (max-width:1120px){#right{width:210px;flex-basis:210px}#left{width:206px;flex-basis:206px}}
+@media (max-width:940px){#right{display:none}.ver{display:none}}
+</style>
+</head>
+<body>
+
+<!-- ══════════ TOP BAR ══════════ -->
+<header id="topbar">
+  <div class="logo">
+    <div class="logo-badge">🥽</div>
+    <div>
+      <div class="logo-name"><b>УрокVR</b> · песочница</div>
+      <div class="logo-sub">VR-квантум · без установки</div>
+    </div>
+  </div>
+
+  <button class="tbtn primary" id="btnRun" title="Сбросить сцену к исходному состоянию и выполнить код (Ctrl+Enter)">▶ Запустить</button>
+  <button class="tbtn stop" id="btnStop" title="Остановить программу и вернуть сцену" disabled>■ Стоп</button>
+  <div class="tsep"></div>
+
+  <button class="tbtn" id="btnView" title="Переключить обзор / от первого лица">🧭 <span>Обзор</span></button>
+  <button class="tbtn vr" id="btnVR" title="Открыть сцену в VR-шлеме через WebXR (Quest / Pico)">🥽 В шлеме</button>
+  <div class="tsep"></div>
+
+  <div class="menu-wrap">
+    <button class="tbtn" id="btnTemplates">📋 <span>Шаблоны</span> ▾</button>
+    <div class="menu" id="menuTemplates">
+      <div class="menu-title">Готовые миры</div>
+      <button class="menu-item" data-tpl="space">🚀 Космос <small>старт</small></button>
+      <button class="menu-item" data-tpl="museum">🏛️ Музей <small>зал</small></button>
+      <button class="menu-item" data-tpl="class">🎓 Класс <small>урок</small></button>
+      <button class="menu-item" data-tpl="empty">⚪ Пустая сцена <small>с нуля</small></button>
+    </div>
+  </div>
+  <button class="tbtn icon" id="btnClear" title="Убрать все объекты со сцены">🧹</button>
+  <div class="tsep"></div>
+
+  <div class="menu-wrap">
+    <button class="tbtn" id="btnSaveMenu">💾 <span>Проект</span> ▾</button>
+    <div class="menu" id="menuSave">
+      <div class="menu-title">Сохранить проект</div>
+      <div class="save-row">
+        <input type="text" id="saveName" placeholder="Название проекта…" maxlength="60">
+        <button class="tbtn primary" id="btnDoSave" style="height:32px;padding:0 12px">Сохран.</button>
+      </div>
+      <div class="menu-title">Мои сохранения</div>
+      <div class="save-list" id="saveList"></div>
+      <div class="menu-sep"></div>
+      <button class="menu-item" id="btnExportJson">⬇️ Скачать файл .json</button>
+      <button class="menu-item" id="btnImportJson">⬆️ Открыть файл .json</button>
+      <button class="menu-item" id="btnCopyLink">🔗 Копировать ссылку на проект</button>
+    </div>
+  </div>
+  <input type="file" id="fileImport" accept=".json,application/json" hidden>
+
+  <div class="spacer"></div>
+  <button class="tbtn icon" id="btnSound" title="Звук интерфейса и программный">🔊</button>
+  <button class="tbtn icon" id="btnHelp" title="Как пользоваться">?</button>
+  <div class="ver">УрокVR v1.0<br>14.11.2026 · Модуль А</div>
+</header>
+
+<!-- ══════════ MAIN ══════════ -->
+<main id="main">
+
+  <!-- LEFT PANEL -->
+  <aside id="left">
+    <div class="tabs">
+      <button class="tab active" id="tabAdd">＋ Добавить</button>
+      <button class="tab" id="tabScene">☰ Сцена <span id="objCount">0</span></button>
+    </div>
+
+    <div class="panel-body" id="pageAdd">
+      <div class="lib-grid" id="libGrid"></div>
+      <div class="lib-hint">💡 Нажмите на объект — он появится в центре сцены. Клик по объекту в 3D — выбрать его; в режиме <b>«↔ Перемещение»</b> тяните мышью, чтобы двигать.</div>
+    </div>
+
+    <div class="panel-body hidden" id="pageScene">
+      <div id="objList"></div>
+      <div class="scene-empty" id="sceneEmpty">Сцена пустая.<br>Добавьте объекты на вкладке «＋ Добавить»<br>или откройте шаблон 📋</div>
+    </div>
+  </aside>
+
+  <!-- CENTER: viewport + drawer -->
+  <section id="center">
+    <div id="viewport">
+      <canvas id="glcanvas"></canvas>
+
+      <div class="vp-overlay vp-tool">
+        <button id="toolOrbit" class="active" title="Вращение камеры: ЛКМ — орбита, колесо — зум, ПКМ — сдвиг">🧭 Осмотр</button>
+        <button id="toolMove" title="Перетаскивание выбранного объекта по плоскости. Shift — шаг 0,5 м">↔ Перемещение</button>
+      </div>
+
+      <div class="vp-overlay" id="fpsBadge">60 <small>FPS</small></div>
+      <div class="vp-overlay vp-cross" id="vpCross"></div>
+      <div class="vp-overlay vp-hint" id="vpHint">ЛКМ + движение — вращать · колесо — приблизить · клик по объекту — выбрать</div>
+      <div class="vp-overlay" id="saySplash"></div>
+    </div>
+
+    <!-- BOTTOM DRAWER -->
+    <div id="drawer" class="open">
+      <div class="drawer-bar">
+        <button class="dtab active" id="dtabCode">🧩 Код (блоки)</button>
+        <button class="dtab" id="dtabConsole">🖥️ Консоль <span class="badge" id="consoleBadge">0</span></button>
+        <button class="dtab" id="dtabOsc">📈 Осциллограф</button>
+        <button class="drawer-collapse" id="drawerCollapse" title="Свернуть панель">▾</button>
+      </div>
+      <div class="drawer-body">
+        <div class="dtab-page active" id="codePage"><div id="blocklyDiv"></div></div>
+        <div class="dtab-page" id="consolePage">
+          <div class="console-tools">
+            <span>🪵 Вывод программы и события сцены</span>
+            <div style="flex:1"></div>
+            <button id="btnConsoleClear">Очистить</button>
+          </div>
+          <div id="consoleLog"></div>
+        </div>
+        <div class="dtab-page" id="oscPage">
+          <canvas id="oscCanvas"></canvas>
+          <div class="osc-side">
+            <div class="stat"><div class="k">FPS</div><div class="v ok" id="stFps">—</div></div>
+            <div class="stat"><div class="k">Время кадра</div><div class="v" id="stMs">— <small>мс</small></div></div>
+            <div class="stat"><div class="k">Объектов</div><div class="v" id="stObj">0</div></div>
+            <div class="stat"><div class="k">Отрисовок за кадр</div><div class="v" id="stCalls">0</div></div>
+            <div class="stat"><div class="k">Треугольников</div><div class="v" id="stTris">0</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button id="drawerOpenFab">🧩 Панель блоков</button>
+  </section>
+
+  <!-- RIGHT PANEL: properties -->
+  <aside id="right">
+    <div class="rp-head">🎛️ <h2>Свойства объекта</h2></div>
+    <div class="rp-body" id="rpEmpty">
+      <div class="rp-empty">Ничего не выбрано.<br><br>Кликните по объекту в 3D-сцене или выберите его на вкладке «☰ Сцена».</div>
+    </div>
+    <div class="rp-body" id="rpProps" style="display:none">
+      <div class="field"><label>Имя (видно в блоках)</label><input type="text" id="propName" maxlength="32"></div>
+      <div class="field"><label>Позиция, м</label>
+        <div class="xyz">
+          <div><span>X</span><input type="number" id="propX" step="0.5"></div>
+          <div><span>Y</span><input type="number" id="propY" step="0.5"></div>
+          <div><span>Z</span><input type="number" id="propZ" step="0.5"></div>
+        </div>
+      </div>
+      <div class="field"><label>Поворот по Y, °</label><input type="range" id="propRotY" min="0" max="360" step="1"></div>
+      <div class="field"><label>Размер (масштаб)</label><input type="range" id="propScale" min="0.2" max="4" step="0.05"></div>
+      <div class="field"><label>Цвет</label><input type="color" id="propColor"></div>
+      <label class="switch"><input type="checkbox" id="propGravity"><span>Учитывать гравитацию (падает)</span></label>
+      <div class="rp-actions">
+        <button class="btn-ghost" id="btnDuplicate">⧉ Дублировать</button>
+        <button class="btn-danger" id="btnDelete">🗑 Удалить</button>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<!-- ══════════ MODAL & TOAST ══════════ -->
+<div id="modalOverlay"><div class="modal">
+  <div class="modal-head"><h3 id="modalTitle">…</h3><button class="modal-x" id="modalClose">×</button></div>
+  <div class="modal-body" id="modalBody"></div>
+  <div class="modal-foot" id="modalFoot"></div>
+</div></div>
+<div id="toast"></div>
+
+<!-- ══════════ APP ══════════ -->
+<script>
+'use strict';
+/* ============================================================
+   УрокVR · песочница — VR/AR-квантум, модуль «VR-песочница»
+   Один файл, без установки. Three.js + Blockly + WebXR.
+   ============================================================ */
+/* ── 0. Утилиты ─────────────────────────────────────────── */
+const $  = (s, r) => (r||document).querySelector(s);
+const $$ = (s, r) => Array.from((r||document).querySelectorAll(s));
+const clamp = (v,a,b) => Math.min(b, Math.max(a, v));
+const uid   = () => Math.random().toString(36).slice(2,9) + Date.now().toString(36).slice(-3);
+const esc   = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const b64encode = obj => btoa(unescape(encodeURIComponent(JSON.stringify(obj)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const b64decode = str => { str = str.replace(/-/g,'+').replace(/_/g,'/'); while (str.length % 4) str += '='; return JSON.parse(decodeURIComponent(escape(atob(str)))); };
+const deepClone = o => JSON.parse(JSON.stringify(o));
+
+/* ── 1. Звук (Web Audio, без внешних файлов) ───────────── */
+const Sound = (() => {
+  let ctx = null, on = true;
+  const ac = () => (ctx = ctx || new (window.AudioContext || window.webkitAudioContext)());
+  function tone(freq, dur, type, vol, when, slideTo) {
+    const t = ac().currentTime + (when || 0);
+    const o = ac().createOscillator(), g = ac().createGain();
+    o.type = type || 'sine'; o.frequency.setValueAtTime(freq, t);
+    if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol || 0.16, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(ac().destination); o.start(t); o.stop(t + dur + 0.02);
+  }
+  function noise(dur, when) {
+    const t = ac().currentTime + (when || 0), len = Math.floor(ac().sampleRate * dur);
+    const buf = ac().createBuffer(1, len, ac().sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    const src = ac().createBufferSource(); src.buffer = buf;
+    const f = ac().createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 900;
+    const g = ac().createGain(); g.gain.setValueAtTime(0.32, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(f).connect(g).connect(ac().destination); src.start(t);
+  }
+  const bank = {
+    'клик':   () => tone(760, .06, 'square', .06),
+    'дзинь':  () => { tone(1318, .35, 'sine', .18); tone(1976, .5, 'sine', .12, .07); },
+    'успех':  () => { tone(523,.22,'triangle',.2); tone(659,.22,'triangle',.2,.11); tone(784,.4,'triangle',.22,.22); },
+    'прыжок': () => tone(280, .22, 'sine', .2, 0, 880),
+    'взрыв':  () => { noise(.55); tone(70, .5, 'sawtooth', .25, 0, 44); },
+    'ошибка': () => { tone(196, .16, 'square', .12); tone(147, .3, 'square', .12, .17); },
+    'thump':  () => tone(95, .09, 'sine', .22),
+    'ui':     () => tone(880, .035, 'sine', .05)
+  };
+  return {
+    play(name) { if (!on) return; try { (bank[name] || bank['клик'])(); } catch(e) { /* аудио недоступно */ } },
+    toggle() { on = !on; return on; },
+    isOn() { return on; }
+  };
+})();
+
+/* ── 2. Каталог объектов и построители мешей ───────────── */
+const CATALOG = [
+  { key:'box',      name:'Кубик',    icon:'📦', color:'#8f7bff' },
+  { key:'sphere',   name:'Шар',      icon:'🟣', color:'#c084fc' },
+  { key:'cylinder', name:'Цилиндр',  icon:'🥫', color:'#67e8f9' },
+  { key:'cone',     name:'Конус',    icon:'🔺', color:'#fda4af' },
+  { key:'torus',    name:'Тор',      icon:'🍩', color:'#fbbf24' },
+  { key:'pyramid',  name:'Пирамида', icon:'🔻', color:'#fdba74' },
+  { key:'house',    name:'Дом',      icon:'🏠', color:'#e2725b' },
+  { key:'tree',     name:'Дерево',   icon:'🌳', color:'#3fae6a' },
+  { key:'robot',    name:'Робот',    icon:'🤖', color:'#9fb4d8' },
+  { key:'car',      name:'Машина',   icon:'🚗', color:'#f87171' },
+  { key:'ufo',      name:'НЛО',      icon:'🛸', color:'#7dd3fc' },
+  { key:'button',   name:'Кнопка',   icon:'🔴', color:'#ef4444' }
+];
+const CATALOG_MAP = Object.fromEntries(CATALOG.map(c => [c.key, c]));
+
+function mat(color, rough, metal, emissive, eInt) {
+  return new THREE.MeshStandardMaterial({
+    color: new THREE.Color(color), roughness: rough == null ? .72 : rough, metalness: metal == null ? .08 : metal,
+    emissive: emissive ? new THREE.Color(emissive) : new THREE.Color(0x000000), emissiveIntensity: eInt || 0
+  });
+}
+function M(geo, material, x, y, z, ry) {
+  const m = new THREE.Mesh(geo, material);
+  m.position.set(x || 0, y || 0, z || 0);
+  if (ry) m.rotation.y = ry;
+  m.castShadow = true; m.receiveShadow = true;
+  return m;
+}
+const BUILDERS = {
+  box()      { const t = mat('#8f7bff'); return { group: g([M(new THREE.BoxGeometry(1,1,1), t, 0,.5,0)]), tint:[t] }; },
+  sphere()   { const t = mat('#c084fc', .45, .15); return { group: g([M(new THREE.SphereGeometry(.62,28,20), t, 0,.62,0)]), tint:[t] }; },
+  cylinder() { const t = mat('#67e8f9', .5); return { group: g([M(new THREE.CylinderGeometry(.5,.5,1.15,26), t, 0,.575,0)]), tint:[t] }; },
+  cone()     { const t = mat('#fda4af', .55); return { group: g([M(new THREE.ConeGeometry(.62,1.25,26), t, 0,.625,0)]), tint:[t] }; },
+  torus()    { const t = mat('#fbbf24', .35, .55); const m = M(new THREE.TorusGeometry(.52,.2,16,36), t, 0,.72,0); m.rotation.x = Math.PI/2; return { group: g([m]), tint:[t] }; },
+  pyramid()  { const t = mat('#fdba74', .6); return { group: g([M(new THREE.ConeGeometry(.78,1.3,4), t, 0,.65,0, Math.PI/4)]), tint:[t] }; },
+  house()    {
+    const wall = mat('#e2725b', .8), roof = mat('#b3442c', .65), dark = mat('#3a241a', .9);
+    const grp = [ M(new THREE.BoxGeometry(1.6,1.15,1.35), wall, 0,.575,0),
+                  M(new THREE.ConeGeometry(1.32,.85,4), roof, 0,1.575,0, Math.PI/4),
+                  M(new THREE.BoxGeometry(.36,.62,.06), dark, 0,.31,.69) ];
+    return { group: g(grp), tint:[wall] };
+  },
+  tree()     {
+    const trunk = mat('#5a3a22', .9), leaf = mat('#3fae6a', .75), leaf2 = mat('#57c486', .75);
+    const grp = [ M(new THREE.CylinderGeometry(.17,.23,.85,12), trunk, 0,.425,0),
+                  M(new THREE.IcosahedronGeometry(.62,0), leaf, 0,1.18,0),
+                  M(new THREE.IcosahedronGeometry(.4,0), leaf2, 0,1.75,0) ];
+    return { group: g(grp), tint:[leaf, leaf2] };
+  },
+  robot()    {
+    const body = mat('#9fb4d8', .4, .6), dark = mat('#2b3550', .6, .3);
+    const eye = mat('#22d3ee', .3, 0, '#22d3ee', 1.6), ant = mat('#fbbf24', .4, 0, '#fbbf24', 1.2);
+    const grp = [ M(new THREE.BoxGeometry(.92,.98,.62), body, 0,1.02,0),
+                  M(new THREE.BoxGeometry(.68,.52,.56), body, 0,1.79,0),
+                  M(new THREE.BoxGeometry(.1,.09,.04), eye,  -.16,1.84,.285), M(new THREE.BoxGeometry(.1,.09,.04), eye, .16,1.84,.285),
+                  M(new THREE.CylinderGeometry(.035,.035,.3,8), dark, 0,2.2,0), M(new THREE.SphereGeometry(.075,12,10), ant, 0,2.38,0),
+                  M(new THREE.BoxGeometry(.3,.55,.34), dark, -.28,.28,0), M(new THREE.BoxGeometry(.3,.55,.34), dark, .28,.28,0),
+                  M(new THREE.BoxGeometry(.16,.6,.2), body, -.57,1.1,0), M(new THREE.BoxGeometry(.16,.6,.2), body, .57,1.1,0) ];
+    return { group: g(grp), tint:[body] };
+  },
+  car()      {
+    const body = mat('#f87171', .35, .4), glass = mat('#182a44', .15, .8), wheel = mat('#141821', .8);
+    const grp = [ M(new THREE.BoxGeometry(1.95,.48,1.0), body, 0,.62,0),
+                  M(new THREE.BoxGeometry(1.12,.42,.9), glass, -.05,1.05,0) ];
+    [[-.65,.27,.52],[.65,.27,.52],[-.65,.27,-.52],[.65,.27,-.52]].forEach(p => {
+      const w = M(new THREE.CylinderGeometry(.27,.27,.2,18), wheel, p[0],p[1],p[2]); w.rotation.x = Math.PI/2; grp.push(w);
+    });
+    return { group: g(grp), tint:[body] };
+  },
+  ufo()      {
+    const disc = mat('#7dd3fc', .3, .7), dome = mat('#dff6ff', .1, 0, '#bfe9ff', .9), ring = mat('#22d3ee', .4, 0, '#22d3ee', 2);
+    const r = M(new THREE.TorusGeometry(.72,.1,12,32), ring, 0,.74,0); r.rotation.x = Math.PI/2;
+    const grp = [ M(new THREE.CylinderGeometry(.78,.45,.28,26), disc, 0,.78,0), M(new THREE.SphereGeometry(.42,20,14), dome, 0,.98,0), r ];
+    for (let i=0;i<6;i++){ const a=i/6*Math.PI*2; grp.push(M(new THREE.SphereGeometry(.06,8,8), ring, Math.cos(a)*.62,.72,Math.sin(a)*.62)); }
+    return { group: g(grp), tint:[disc] };
+  },
+  button()   {
+    const base = mat('#2b3550', .6, .4), top = mat('#ef4444', .35, .1, '#ef4444', .7);
+    return { group: g([ M(new THREE.CylinderGeometry(.56,.62,.16,24), base, 0,.08,0), M(new THREE.CylinderGeometry(.4,.4,.2,24), top, 0,.25,0) ]), tint:[top] };
+  },
+  sun()      { const s = new THREE.Mesh(new THREE.SphereGeometry(1.5,32,24), new THREE.MeshBasicMaterial({ color: 0xffd873, fog:false })); s.position.y = 0; const pl = new THREE.PointLight(0xffd9a0, 1.5, 0, 0); const grp = new THREE.Group(); grp.add(s); grp.add(pl); return { group: grp, tint: [] }; },
+  board()    {
+    const frame = mat('#5a4632', .7), surf = mat('#0e3b2c', .85);
+    return { group: g([ M(new THREE.BoxGeometry(3.3,1.85,.1), frame, 0,1.65,0), M(new THREE.BoxGeometry(3.05,1.6,.12), surf, 0,1.65,0.006) ]), tint: [] };
+  }
+};
+function g(children) { const grp = new THREE.Group(); children.forEach(c => grp.add(c)); return grp; }
+/* ── 3. Три.js: сцена, свет, земля, звёзды ─────────────── */
+const viewport   = $('#viewport');
+const canvas     = $('#glcanvas');
+const renderer   = new THREE.WebGLRenderer({ canvas, antialias:true, preserveDrawingBuffer:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
+renderer.outputEncoding    = THREE.sRGBEncoding;
+
+const scene = new THREE.Scene();
+const DEFAULT_BG = 0x182036;
+scene.background = new THREE.Color(DEFAULT_BG);
+scene.fog = new THREE.Fog(DEFAULT_BG, 42, 92);
+
+const camera = new THREE.PerspectiveCamera(58, 1, 0.1, 500);
+
+const hemi = new THREE.HemisphereLight(0xbdd4ff, 0x201409, 0.62); scene.add(hemi);
+const dirLight = new THREE.DirectionalLight(0xffffff, 1.05);
+dirLight.position.set(9, 15, 7); dirLight.castShadow = true;
+dirLight.shadow.mapSize.set(2048, 2048);
+Object.assign(dirLight.shadow.camera, { left:-24, right:24, top:24, bottom:-24, near:1, far:60 });
+dirLight.shadow.bias = -0.00045;
+scene.add(dirLight);
+scene.add(new THREE.AmbientLight(0xffffff, 0.12));
+
+/* земля с сеткой (canvas-текстура) */
+function makeGroundTexture() {
+  const c = document.createElement('canvas'); c.width = c.height = 512;
+  const x = c.getContext('2d');
+  x.fillStyle = '#1b2338'; x.fillRect(0,0,512,512);
+  x.strokeStyle = 'rgba(148,178,255,0.055)'; x.lineWidth = 1;
+  for (let i = 0; i <= 512; i += 32) { x.beginPath(); x.moveTo(i,0); x.lineTo(i,512); x.moveTo(0,i); x.lineTo(512,i); x.stroke(); }
+  x.strokeStyle = 'rgba(148,178,255,0.16)'; x.lineWidth = 2;
+  for (let i = 0; i <= 512; i += 128) { x.beginPath(); x.moveTo(i,0); x.lineTo(i,512); x.moveTo(0,i); x.lineTo(512,i); x.stroke(); }
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(14,14); tex.anisotropy = 4;
+  return tex;
+}
+const ground = new THREE.Mesh(
+  new THREE.CircleGeometry(58, 48),
+  new THREE.MeshStandardMaterial({ map: makeGroundTexture(), roughness: .95, metalness: 0 })
+);
+ground.rotation.x = -Math.PI/2; ground.receiveShadow = true; ground.name = '__ground';
+scene.add(ground);
+
+/* звёзды */
+const starGeo = new THREE.BufferGeometry();
+(function(){
+  const N = 1600, pos = new Float32Array(N * 3);
+  for (let i = 0; i < N; i++) {
+    const r = 160 + Math.random() * 120, th = Math.random() * Math.PI * 2, ph = Math.acos(2 * Math.random() - 1);
+    pos[i*3]   = r * Math.sin(ph) * Math.cos(th);
+    pos[i*3+1] = Math.abs(r * Math.cos(ph)) * 0.9 + 2;
+    pos[i*3+2] = r * Math.sin(ph) * Math.sin(th);
+  }
+  starGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+})();
+const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.55, sizeAttenuation: false, fog: false, transparent: true, opacity: .95 }));
+stars.visible = false; scene.add(stars);
+
+const world = new THREE.Group(); scene.add(world);   // все объекты сцены здесь
+const templateLights = [];                             // внутренние источники шаблонов
+
+/* ── 4. Объекты сцены: модель, serialize/load ──────────── */
+let objects = [];       // {id,type,name,pos:[x,y,z],rotYDeg,scale,color,gravity,visible, mesh}
+let selectedId = null;
+let selectionHelper = null;
+let counters = {};
+
+function disposeMaterial(m) { if (m.map) m.map.dispose(); m.dispose(); }
+function disposeGroup(root) {
+  root.traverse(o => {
+    if (o.geometry) o.geometry.dispose();
+    if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(disposeMaterial);
+  });
+}
+function uniqueName(base) {
+  const names = new Set(objects.map(o => o.name));
+  if (!names.has(base)) return base;
+  let i = 2; while (names.has(base + ' ' + i)) i++;
+  return base + ' ' + i;
+}
+function buildRecordMesh(rec) {
+  const builder = BUILDERS[rec.type] || BUILDERS.box;
+  const built = builder();
+  built.tint.forEach(m => m.color.set(rec.color));
+  built.group.userData.tintMats = built.tint;
+  built.group.userData.velY = 0;
+  built.group.position.set(rec.pos[0], rec.pos[1], rec.pos[2]);
+  built.group.rotation.y = rec.rotYDeg * Math.PI / 180;
+  built.group.scale.setScalar(rec.scale);
+  built.group.visible = rec.visible !== false;
+  built.group.userData.objId = rec.id;
+  built.group.traverse(o => { o.userData.objId = rec.id; });
+  built.group.userData.velY = 0;
+  return built.group;
+}
+function addObject(type, opts) {
+  opts = opts || {};
+  const def = CATALOG_MAP[type] || { name: type === 'sun' ? 'Солнце' : 'Объект', color: '#8f7bff' };
+  const rec = {
+    id: uid(), type,
+    name: uniqueName(opts.name || def.name),
+    pos: opts.pos ? opts.pos.slice() : [ (Math.random()-0.5)*3, 0, (Math.random()-0.5)*3 ],
+    rotYDeg: opts.rotYDeg || 0, scale: opts.scale || 1,
+    color: opts.color || def.color, gravity: !!opts.gravity, visible: opts.visible !== false
+  };
+  rec.mesh = buildRecordMesh(rec);
+  world.add(rec.mesh); objects.push(rec);
+  return rec;
+}
+function removeObject(id, skipRefresh) {
+  const i = objects.findIndex(o => o.id === id); if (i < 0) return;
+  const rec = objects[i];
+  world.remove(rec.mesh); disposeGroup(rec.mesh);
+  objects.splice(i, 1);
+  if (selectedId === id) selectObject(null);
+  if (!skipRefresh) refreshAfterSceneChange();
+}
+function duplicateObject(id) {
+  const rec = objects.find(o => o.id === id); if (!rec) return null;
+  const copy = addObject(rec.type, { name: rec.name.replace(/\s+\d+$/,''), pos:[rec.pos[0]+0.9, rec.pos[1], rec.pos[2]+0.9], rotYDeg: rec.rotYDeg, scale: rec.scale, color: rec.color, gravity: rec.gravity });
+  selectObject(copy.id); return copy;
+}
+function findById(id)   { return objects.find(o => o.id === id) || null; }
+function findByName(nm) { return objects.find(o => o.name === nm) || null; }
+
+function serializeScene(includeCode) {
+  const data = { app:'urokvr', version:1, savedAt: new Date().toISOString(),
+    objects: objects.map(o => ({ id:o.id, type:o.type, name:o.name, pos:o.pos.slice(), rotYDeg:o.rotYDeg, scale:o.scale, color:o.color, gravity:o.gravity, visible:o.visible })) };
+  if (includeCode !== false && typeof blocklyWs !== 'undefined' && blocklyWs) {
+    try { data.workspaceXml = Blockly.utils.xml.domToText(Blockly.Xml.workspaceToDom(blocklyWs)); } catch(e) { try { data.workspaceXml = Blockly.Xml.domToText(Blockly.Xml.workspaceToDom(blocklyWs)); } catch(e2) {} }
+  }
+  return data;
+}
+function deserializeScene(data) {
+  if (!data || data.app !== 'urokvr') throw new Error('Это не проект УрокVR');
+  clearSceneObjects();
+  (data.objects || []).forEach(o => {
+    const rec = addObject(o.type, { name:o.name, pos:o.pos, rotYDeg:o.rotYDeg, scale:o.scale, color:o.color, gravity:o.gravity, visible:o.visible });
+    rec.id = o.id; rec.mesh.userData.objId = o.id; rec.mesh.traverse(m => m.userData.objId = o.id);
+  });
+  if (data.workspaceXml) {
+    try { Blockly.Xml.clearWorkspaceAndLoadFromXml((Blockly.utils.xml.textToDom || Blockly.Xml.textToDom)(data.workspaceXml), blocklyWs); } catch(e) { console.warn('Блоки не загрузились', e); }
+  }
+  selectObject(null); refreshAfterSceneChange();
+}
+function clearSceneObjects() {
+  [...objects].forEach(o => removeObject(o.id, true));
+  templateLights.forEach(l => { scene.remove(l); if (l.dispose) l.dispose(); });
+  templateLights.length = 0;
+  stars.visible = false; ground.visible = true;
+  scene.background = new THREE.Color(DEFAULT_BG); scene.fog = new THREE.Fog(DEFAULT_BG, 42, 92);
+}
+function refreshAfterSceneChange() { renderObjList(); refreshObjectDropdowns(); updateObjCount(); updatePropsPanel(); }
+function updateObjCount() { $('#objCount').textContent = objects.length; }
+
+/* выделение */
+function selectObject(id) {
+  selectedId = id;
+  if (selectionHelper) { scene.remove(selectionHelper); try { selectionHelper.geometry && selectionHelper.geometry.dispose(); selectionHelper.material && selectionHelper.material.dispose(); } catch (e) {} selectionHelper = null; }
+  const rec = id ? findById(id) : null;
+  if (rec) { selectionHelper = new THREE.BoxHelper(rec.mesh, 0x22d3ee); selectionHelper.material.depthTest = false; selectionHelper.renderOrder = 999; scene.add(selectionHelper); }
+  refreshAfterSceneChange();
+}
+/* ── 5. Камера: орбита и от первого лица ───────────────── */
+const cam = { target: new THREE.Vector3(0, 1.1, 0), radius: 11.5, theta: 0.72, phi: 1.02 };
+const fp  = { yaw: Math.PI, pitch: 0, pos: new THREE.Vector3(0, 1.65, 7.5), keys: new Set() };
+let viewMode = 'orbit';   // 'orbit' | 'fp'
+
+function applyOrbit() {
+  const sp = Math.sin(cam.phi), cp = Math.cos(cam.phi);
+  camera.position.set(
+    cam.target.x + cam.radius * sp * Math.sin(cam.theta),
+    cam.target.y + cam.radius * cp,
+    cam.target.z + cam.radius * sp * Math.cos(cam.theta)
+  );
+  camera.lookAt(cam.target);
+}
+function applyFirstPerson() {
+  camera.rotation.order = 'YXZ';
+  camera.rotation.set(fp.pitch, fp.yaw, 0);
+  camera.position.copy(fp.pos);
+}
+function updateCamera(dt) {
+  if (viewMode === 'fp') {
+    const speed = (fp.keys.has('shift') ? 6.2 : 3.4) * dt;
+    const f = new THREE.Vector3(-Math.sin(fp.yaw), 0, -Math.cos(fp.yaw));
+    const r = new THREE.Vector3(-f.z, 0, f.x);
+    const mv = new THREE.Vector3();
+    if (fp.keys.has('KeyW') || fp.keys.has('ArrowUp'))    mv.add(f);
+    if (fp.keys.has('KeyS') || fp.keys.has('ArrowDown'))  mv.sub(f);
+    if (fp.keys.has('KeyA') || fp.keys.has('ArrowLeft'))  mv.sub(r);
+    if (fp.keys.has('KeyD') || fp.keys.has('ArrowRight')) mv.add(r);
+    if (mv.lengthSq() > 0) { mv.normalize().multiplyScalar(speed); fp.pos.add(mv); fp.pos.x = clamp(fp.pos.x, -55, 55); fp.pos.z = clamp(fp.pos.z, -55, 55); }
+    applyFirstPerson();
+  } else applyOrbit();
+}
+function setViewMode(mode) {
+  viewMode = mode;
+  const fpOn = mode === 'fp';
+  $('#btnView').classList.toggle('toggled', fpOn);
+  $('#btnView .span, #btnView span').textContent = fpOn ? 'От 1-го лица' : 'Обзор';
+  $('#vpCross').style.display = fpOn ? 'block' : 'none';
+  $('#vpHint').textContent = fpOn
+    ? 'WASD / стрелки — идти · Shift — бег · ЛКМ + движение — смотреть по сторонам'
+    : 'ЛКМ + движение — вращать · колесо — приблизить · клик по объекту — выбрать';
+  if (fpOn) { fp.pos.set(cam.target.x + Math.sin(cam.theta) * 5, 1.65, cam.target.z + Math.cos(cam.theta) * 5); fp.yaw = cam.theta + Math.PI; fp.pitch = 0; }
+  Sound.play('ui');
+}
+
+/* ── 6. Взаимодействие указателем ──────────────────────── */
+const raycaster = new THREE.Raycaster();
+const pointerNdc = new THREE.Vector2();
+const dragPlane = new THREE.Plane(new THREE.Vector3(0,1,0), 0);
+const pointers = new Map();
+let dragState = null;   // {kind:'orbit'|'fpLook'|'object'|'pan', ...}
+const GRAB_OFF = new THREE.Vector3();
+
+function ndcFromEvent(e) {
+  const r = canvas.getBoundingClientRect();
+  pointerNdc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  return pointerNdc;
+}
+function pickObject(e) {
+  raycaster.setFromCamera(ndcFromEvent(e), camera);
+  const hits = raycaster.intersectObjects(world.children, true);
+  for (const h of hits) { if (h.object.userData.objId) return findById(h.object.userData.objId); }
+  return null;
+}
+canvas.addEventListener('pointerdown', e => {
+  canvas.setPointerCapture(e.pointerId);
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pointers.size === 2) { dragState = { kind: 'pinch', d: pinchDist() }; return; }
+  const isMoveTool = $('#toolMove').classList.contains('active');
+  const hit = pickObject(e);
+  if (isMoveTool && hit && selectedId === hit.id) {
+    dragPlane.constant = -hit.pos[1];
+    const p = planePoint(e); GRAB_OFF.set(hit.pos[0] - p.x, 0, hit.pos[2] - p.z);
+    dragState = { kind: 'object', id: hit.id, moved: false, startX: e.clientX, startY: e.clientY };
+    return;
+  }
+  if (viewMode === 'fp') dragState = { kind: 'fpLook', x: e.clientX, y: e.clientY, moved: false, sx: e.clientX, sy: e.clientY };
+  else dragState = { kind: e.button === 2 ? 'pan' : 'orbit', x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY };
+});
+canvas.addEventListener('pointermove', e => {
+  const rec = pointers.get(e.pointerId);
+  // панорама/зум двумя пальцами
+  if (pointers.size === 2 && dragState && dragState.kind === 'pinch') {
+    if (rec) { rec.x = e.clientX; rec.y = e.clientY; }
+    const d = pinchDist(); if (d > 10 && dragState.d > 10) { cam.radius = clamp(cam.radius * dragState.d / d, 2.5, 55); }
+    dragState.d = d; return;
+  }
+  if (!dragState) return;
+  const dx = e.clientX - (dragState.x !== undefined ? dragState.x : e.clientX);
+  const dy = e.clientY - (dragState.y !== undefined ? dragState.y : e.clientY);
+  dragState.x = e.clientX; dragState.y = e.clientY;
+  if (dragState.kind === 'orbit') {
+    cam.theta -= dx * 0.0052; cam.phi = clamp(cam.phi - dy * 0.0052, 0.15, 1.52);
+  } else if (dragState.kind === 'pan') {
+    const s = cam.radius * 0.0016;
+    const right = new THREE.Vector3(Math.cos(cam.theta), 0, -Math.sin(cam.theta));
+    cam.target.addScaledVector(right, -dx * s); cam.target.y = clamp(cam.target.y + dy * s, 0.2, 14);
+  } else if (dragState.kind === 'fpLook') {
+    fp.yaw -= dx * 0.0045; fp.pitch = clamp(fp.pitch - dy * 0.0042, -1.35, 1.35);
+    if (Math.abs(e.clientX - dragState.sx) + Math.abs(e.clientY - dragState.sy) > 6) dragState.moved = true;
+  } else if (dragState.kind === 'object') {
+    const o = findById(dragState.id); if (!o) return;
+    const p = planePoint(e);
+    let nx = p.x + GRAB_OFF.x, nz = p.z + GRAB_OFF.z;
+    if (e.shiftKey) { nx = Math.round(nx * 2) / 2; nz = Math.round(nz * 2) / 2; }
+    o.pos[0] = clamp(nx, -54, 54); o.pos[2] = clamp(nz, -54, 54);
+    o.mesh.position.set(o.pos[0], o.pos[1], o.pos[2]);
+    if (Math.abs(e.clientX - dragState.startX) + Math.abs(e.clientY - dragState.startY) > 4) dragState.moved = true;
+    syncPropInputs(o);
+  }
+});
+function endPointer(e) {
+  pointers.delete(e.pointerId);
+  if (pointers.size < 2 && dragState && dragState.kind === 'pinch') { dragState = null; return; }
+  if (!dragState) return;
+  const wasClick = dragState.kind !== 'object'
+    ? (Math.abs((dragState.x ?? e.clientX) - (dragState.sx ?? e.clientX)) + Math.abs((dragState.y ?? e.clientY) - (dragState.sy ?? e.clientY)) < 5)
+    : !dragState.moved;
+  const kind = dragState.kind; dragState = null;
+  if (wasClick && e.button !== 2 && kind !== 'pan') {
+    const hit = pickObject(e);
+    handleSceneClick(hit);
+  } else if (kind === 'object') refreshAfterSceneChange();
+}
+canvas.addEventListener('pointerup', endPointer);
+canvas.addEventListener('pointercancel', endPointer);
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+canvas.addEventListener('wheel', e => { e.preventDefault(); if (viewMode === 'orbit') cam.radius = clamp(cam.radius * (1 + e.deltaY * 0.0011), 2.5, 55); }, { passive:false });
+
+function pinchDist() { const p = [...pointers.values()]; return Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y); }
+function planePoint(e) {
+  raycaster.setFromCamera(ndcFromEvent(e), camera);
+  const out = new THREE.Vector3();
+  raycaster.ray.intersectPlane(dragPlane, out);
+  return out;
+}
+function handleSceneClick(hit) {
+  if (hit) {
+    selectObject(hit.id); Sound.play('ui');
+    if (runtimeActive && runtimeRef && runtimeRef.handlers[hit.name]) {
+      runtimeRef.handlers[hit.name].forEach(cb => { try { cb(); } catch (err) { clog('Ошибка в обработчике «' + hit.name + '»: ' + err.message, 'err'); } });
+    }
+  } else selectObject(null);
+}
+/* ── 7. Консоль («серийный монитор») ───────────────────── */
+const consoleLog = $('#consoleLog');
+let consoleErrors = 0;
+function clog(text, level) {
+  level = level || 'info';
+  const time = new Date().toLocaleTimeString('ru-RU', { hour12:false });
+  const line = document.createElement('div'); line.className = 'log-line';
+  const t = document.createElement('span'); t.className = 'log-time'; t.textContent = time;
+  const m = document.createElement('span'); m.className = 'log-' + level; m.textContent = String(text);
+  line.appendChild(t); line.appendChild(m);
+  consoleLog.appendChild(line);
+  while (consoleLog.children.length > 220) consoleLog.removeChild(consoleLog.firstChild);
+  consoleLog.scrollTop = consoleLog.scrollHeight;
+  if (level === 'err') {
+    consoleErrors++;
+    const badge = $('#consoleBadge'); badge.textContent = consoleErrors;
+    if (!$('#dtabConsole').classList.contains('active')) badge.classList.add('on');
+  }
+}
+$('#btnConsoleClear').addEventListener('click', () => { consoleLog.innerHTML = ''; consoleErrors = 0; $('#consoleBadge').classList.remove('on'); });
+
+/* надпись на экране («бортовой дисплей») */
+const saySplash = $('#saySplash');
+let sayTimer = null;
+function say(text) {
+  saySplash.textContent = text; saySplash.classList.add('show');
+  clearTimeout(sayTimer);
+  sayTimer = setTimeout(() => saySplash.classList.remove('show'), 3000);
+}
+
+/* ── 8. Blockly: свои блоки на русском ─────────────────── */
+let blocklyWs = null;
+const OBJ_OPT = () => {
+  const list = objects.map(o => [o.name, o.name]);
+  return list.length ? list : [['(нет объектов)', '__none__']];
+};
+const HATS = new Set(['when_start', 'when_clicked', 'when_every']);
+const OBJ_DROP = () => new Blockly.FieldDropdown(OBJ_OPT);
+
+function defineBlocks() {
+  const B = Blockly.Blocks, JS = Blockly.JavaScript;
+  const stmt = { "type":"dummy" };
+
+  B['when_start'] = { init() { this.appendDummyInput().appendField('🏁 когда запускается программа'); this.setNextStatement(true); this.setColour('#d97706'); this.setTooltip('Сработает один раз при нажатии «▶ Запустить»'); } };
+  B['when_clicked'] = { init() { this.appendDummyInput().appendField('🖱 когда кликнут по').appendField(OBJ_DROP(), 'OBJ'); this.setNextStatement(true); this.setColour('#d97706'); this.setTooltip('Сработает при клике по объекту в 3D-сцене'); } };
+  B['when_every'] = { init() { this.appendDummyInput().appendField('⏱ каждые').appendField(new Blockly.FieldNumber(2, 0.3, 3600), 'SEC').appendField('сек'); this.setNextStatement(true); this.setColour('#d97706'); this.setTooltip('Повторяется, пока программа запущена'); } };
+
+  B['act_move'] = { init() {
+    this.appendDummyInput().appendField('➜ переместить').appendField(OBJ_DROP(), 'OBJ').appendField('на')
+      .appendField('Δx').appendField(new Blockly.FieldNumber(0, -99, 99), 'DX')
+      .appendField('Δy').appendField(new Blockly.FieldNumber(0, -99, 99), 'DY')
+      .appendField('Δz').appendField(new Blockly.FieldNumber(0, -99, 99), 'DZ');
+    this.setPreviousStatement(true); this.setNextStatement(true); this.setColour('#2563eb'); } };
+  B['act_rotate'] = { init() {
+    this.appendDummyInput().appendField('↻ повернуть').appendField(OBJ_DROP(), 'OBJ').appendField('на')
+      .appendField(new Blockly.FieldNumber(45, -3600, 3600), 'DEG').appendField('° по Y');
+    this.setPreviousStatement(true); this.setNextStatement(true); this.setColour('#2563eb'); } };
+  B['act_color'] = { init() {
+    this.appendDummyInput().appendField('🖌 перекрасить').appendField(OBJ_DROP(), 'OBJ').appendField('в')
+      .appendField(new Blockly.FieldColour('#22d3ee'), 'COLOR');
+    this.setPreviousStatement(true); this.setNextStatement(true); this.setColour('#2563eb'); } };
+  B['act_scale'] = { init() {
+    this.appendDummyInput().appendField('🔍 размер').appendField(OBJ_DROP(), 'OBJ').appendField('×')
+      .appendField(new Blockly.FieldNumber(1.4, 0.05, 20), 'F');
+    this.setPreviousStatement(true); this.setNextStatement(true); this.setColour('#2563eb'); } };
+  B['act_jump'] = { init() {
+    this.appendDummyInput().appendField('⬆️ подбросить').appendField(OBJ_DROP(), 'OBJ').appendField('вверх с силой')
+      .appendField(new Blockly.FieldNumber(6, 0.5, 40), 'V');
+    this.setPreviousStatement(true); this.setNextStatement(true); this.setColour('#2563eb'); this.setTooltip('Даёт объекту вертикальную скорость (нужна гравитация)'); } };
+  B['act_gravity'] = { init() {
+    this.appendDummyInput().appendField('🍎 гравитация у').appendField(OBJ_DROP(), 'OBJ').appendField(new Blockly.FieldDropdown([['включить','on'],['выключить','off']]), 'MODE');
+    this.setPreviousStatement(true); this.setNextStatement(true); this.setColour('#2563eb'); } };
+  B['act_create'] = { init() {
+    this.appendDummyInput().appendField('✨ создать').appendField(new Blockly.FieldDropdown([
+      ['Кубик','box'],['Шар','sphere'],['Цилиндр','cylinder'],['Конус','cone'],['Тор','torus'],['Пирамида','pyramid'],
+      ['Дом','house'],['Дерево','tree'],['Робот','robot'],['Машина','car'],['НЛО','ufo'],['Кнопку','button']
+    ]), 'TYPE').appendField('в точке')
+      .appendField('x').appendField(new Blockly.FieldNumber(0, -50, 50), 'X')
+      .appendField('y').appendField(new Blockly.FieldNumber(0, 0, 50), 'Y')
+      .appendField('z').appendField(new Blockly.FieldNumber(0, -50, 50), 'Z');
+    this.setPreviousStatement(true); this.setNextStatement(true); this.setColour('#2563eb'); } };
+  B['act_teleport'] = { init() {
+    this.appendDummyInput().appendField('🌀 телепорт игрока в')
+      .appendField('x').appendField(new Blockly.FieldNumber(0, -54, 54), 'X')
+      .appendField('z').appendField(new Blockly.FieldNumber(0, -54, 54), 'Z');
+    this.setPreviousStatement(true); this.setNextStatement(true); this.setColour('#2563eb'); } };
+  B['act_say'] = { init() {
+    this.appendDummyInput().appendField('💬 надпись на экране').appendField(new Blockly.FieldTextInput('Привет, VR!'), 'TEXT');
+    this.setPreviousStatement(true); this.setNextStatement(true); this.setColour('#0e9f6e'); } };
+  B['act_sound'] = { init() {
+    this.appendDummyInput().appendField('🔊 звук').appendField(new Blockly.FieldDropdown([
+      ['клик','клик'],['дзинь 🔔','дзинь'],['успех 🎉','успех'],['прыжок','прыжок'],['взрыв 💥','взрыв'],['ошибка','ошибка']
+    ]), 'SND');
+    this.setPreviousStatement(true); this.setNextStatement(true); this.setColour('#0e9f6e'); } };
+  B['act_log'] = { init() {
+    this.appendDummyInput().appendField('🪵 в консоль').appendField(new Blockly.FieldTextInput('сообщение'), 'TEXT');
+    this.setPreviousStatement(true); this.setNextStatement(true); this.setColour('#0e9f6e'); } };
+  B['act_wait'] = { init() {
+    this.appendDummyInput().appendField('⏳ ждать').appendField(new Blockly.FieldNumber(1, 0.1, 60), 'SEC').appendField('сек');
+    this.setPreviousStatement(true); this.setNextStatement(true); this.setColour('#0e9f6e'); } };
+
+  const q = s => "'" + String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,'\\n') + "'";
+  const branch = b => { const nb = b.nextConnection && b.nextConnection.targetBlock(); return (nb ? JS.blockToCode(nb) : '') || ''; };
+
+  JS['when_start']   = b => 'rt.onStart(async function(){\n' + branch(b) + '});\n';
+  JS['when_clicked'] = b => "rt.onClick(" + q(b.getFieldValue('OBJ')) + ', async function(){\n' + branch(b) + '});\n';
+  JS['when_every']   = b => 'rt.every(' + b.getFieldValue('SEC') + ', async function(){\n' + branch(b) + '});\n';
+
+  JS['act_move']   = b => "rt.get(" + q(b.getFieldValue('OBJ')) + ').moveBy(' + b.getFieldValue('DX') + ',' + b.getFieldValue('DY') + ',' + b.getFieldValue('DZ') + ');\n';
+  JS['act_rotate'] = b => "rt.get(" + q(b.getFieldValue('OBJ')) + ').rotateY(' + b.getFieldValue('DEG') + ');\n';
+  JS['act_color']  = b => "rt.get(" + q(b.getFieldValue('OBJ')) + ").setColor(" + q(b.getFieldValue('COLOR')) + ');\n';
+  JS['act_scale']  = b => "rt.get(" + q(b.getFieldValue('OBJ')) + ').scaleBy(' + b.getFieldValue('F') + ');\n';
+  JS['act_jump']   = b => "rt.get(" + q(b.getFieldValue('OBJ')) + ').jump(' + b.getFieldValue('V') + ');\n';
+  JS['act_gravity']= b => "rt.get(" + q(b.getFieldValue('OBJ')) + ").setGravity(" + (b.getFieldValue('MODE') === 'on') + ');\n';
+  JS['act_create'] = b => "rt.create(" + q(b.getFieldValue('TYPE')) + ',' + b.getFieldValue('X') + ',' + b.getFieldValue('Y') + ',' + b.getFieldValue('Z') + ');\n';
+  JS['act_teleport']=b => 'rt.teleport(' + b.getFieldValue('X') + ',' + b.getFieldValue('Z') + ');\n';
+  JS['act_say']    = b => 'rt.say(' + q(b.getFieldValue('TEXT')) + ');\n';
+  JS['act_sound']  = b => 'rt.sound(' + q(b.getFieldValue('SND')) + ');\n';
+  JS['act_log']    = b => 'rt.log(' + q(b.getFieldValue('TEXT')) + ');\n';
+  JS['act_wait']   = b => 'await rt.wait(' + b.getFieldValue('SEC') + ');\n';
+}
+const TOOLBOX_XML = `
+<xml xmlns="https://developers.google.com/blockly/xml">
+  <category name="🚀 События" colour="#d97706">
+    <block type="when_start"></block><block type="when_clicked"></block><block type="when_every"></block>
+  </category>
+  <category name="🎮 Действия" colour="#2563eb">
+    <block type="act_move"></block><block type="act_rotate"></block><block type="act_color"></block>
+    <block type="act_scale"></block><block type="act_jump"></block><block type="act_gravity"></block>
+    <block type="act_create"></block><block type="act_teleport"></block>
+  </category>
+  <category name="✨ Эффекты" colour="#0e9f6e">
+    <block type="act_say"></block><block type="act_sound"></block><block type="act_log"></block><block type="act_wait"></block>
+  </category>
+  <category name="🔁 Циклы" colour="#7c3aed">
+    <block type="controls_repeat_ext"><value name="TIMES"><shadow type="math_number"><field name="NUM">4</field></shadow></value></block>
+    <block type="controls_whileUntil"></block>
+  </category>
+  <category name="⚖️ Логика" colour="#0891b2">
+    <block type="controls_if"></block><block type="logic_compare"></block><block type="logic_operation"></block>
+    <block type="logic_boolean"></block><block type="logic_negate"></block>
+  </category>
+  <category name="🔢 Математика" colour="#4b5563">
+    <block type="math_number"></block><block type="math_arithmetic"></block><block type="math_random_int"></block>
+  </category>
+  <category name="💬 Текст" colour="#be185d">
+    <block type="text"></block><block type="text_print"></block><block type="text_join"></block>
+  </category>
+</xml>`;
+const DEFAULT_WS_XML = `
+<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="when_start" x="24" y="24">
+    <next><block type="act_say"><field name="TEXT">Привет из УрокVR! 👋</field>
+      <next><block type="act_sound"><field name="SND">дзинь</field></block></next>
+    </block></next>
+  </block>
+</xml>`;
+
+function initBlockly() {
+  defineBlocks();
+  const darkTheme = Blockly.Theme.defineTheme('urokvr_dark', {
+    base: Blockly.Themes.Classic,
+    componentStyles: {
+      workspaceBackgroundColour: '#0e1424', flyoutBackgroundColour: '#151d33', flyoutOpacity: 0.98,
+      toolboxBackgroundColour: '#131b31', toolboxForegroundColour: '#dbe2f6', flyoutForegroundColour: '#dbe2f6',
+      scrollbarColour: '#2c3757', scrollbarOpacity: 0.75, insertionMarkerColour: '#22d3ee', insertionMarkerOpacity: 0.35
+    }
+  });
+  blocklyWs = Blockly.inject('blocklyDiv', {
+    toolbox: TOOLBOX_XML, theme: darkTheme, trashcan: true, scrollbars: true,
+    grid: { spacing: 24, length: 2.2, colour: '#1c2540', snap: true },
+    zoom: { controls: true, wheel: true, startScale: 0.9, maxScale: 1.6, minScale: 0.5 }
+  });
+  Blockly.Xml.clearWorkspaceAndLoadFromXml(Blockly.utils.xml.textToDom(DEFAULT_WS_XML), blocklyWs);
+}
+
+/* выпадающие списки объектов в блоках — обновляем при изменении сцены */
+function refreshObjectDropdowns() { /* FieldDropdown с функцией options читает objects лениво */ }
+/* ── 9. Выполнение кода (runtime) ──────────────────────── */
+let runtimeActive = false, runtimeRef = null, baselineSnapshot = null;
+
+const ghostHandle = new Proxy({}, { get: () => () => {} });
+function makeRuntime() {
+  const R = {
+    handlers: {}, timers: [], starts: [],
+    onStart(cb) { R.starts.push(cb); },
+    onClick(name, cb) { (R.handlers[name] = R.handlers[name] || []).push(cb); },
+    every(sec, cb) { R.timers.push(setInterval(() => { try { cb(); } catch (e) { clog('Ошибка по таймеру: ' + e.message, 'err'); } }, Math.max(0.25, sec) * 1000)); },
+    wait: s => new Promise(r => setTimeout(r, Math.max(0, s) * 1000)),
+    log(msg) { clog(msg, 'info'); },
+    say(msg) { say(msg); clog('💬 ' + msg, 'ok'); },
+    sound(name) { Sound.play(name); },
+    teleport(x, z) {
+      if (viewMode === 'fp') { fp.pos.set(x, 1.65, z); }
+      else { cam.target.set(x, 1.1, z); cam.radius = 9; }
+      clog('🌀 Телепорт → (' + x + ', ' + z + ')', 'cmd');
+    },
+    create(type, x, y, z) {
+      const rec = addObject(type, { pos: [x, y, z] });
+      clog('✨ Создан объект «' + rec.name + '»', 'ok');
+      refreshAfterSceneChange();
+      return handleFor(rec);
+    },
+    get(name) {
+      const rec = findByName(name);
+      if (!rec) { clog('Объект «' + name + '» не найден на сцене', 'warn'); return ghostHandle; }
+      return handleFor(rec);
+    }
+  };
+  return R;
+}
+function handleFor(rec) {
+  const apply = () => {
+    rec.mesh.position.set(rec.pos[0], rec.pos[1], rec.pos[2]);
+    rec.mesh.rotation.y = rec.rotYDeg * Math.PI / 180;
+    rec.mesh.scale.setScalar(rec.scale);
+    if (selectedId === rec.id) syncPropInputs(rec);
+    refreshObjectDropdowns();
+  };
+  return {
+    name: rec.name,
+    moveBy(dx, dy, dz) { rec.pos[0] += +dx || 0; rec.pos[1] += +dy || 0; rec.pos[2] += +dz || 0; apply(); },
+    rotateY(deg) { rec.rotYDeg = (rec.rotYDeg + (+deg || 0)) % 360; apply(); },
+    setColor(hex) { rec.color = hex; retint(rec, hex); apply(); },
+    scaleBy(f) { rec.scale = clamp(rec.scale * (+f || 1), 0.05, 12); apply(); },
+    jump(v) { rec.gravity = true; rec.mesh.userData.velY = +v || 5; const cb = $('#propGravity'); if (selectedId === rec.id) cb.checked = true; },
+    setGravity(on) { rec.gravity = !!on; if (!rec.gravity) rec.mesh.userData.velY = 0; if (selectedId === rec.id) $('#propGravity').checked = rec.gravity; }
+  };
+}
+/* перекрашиваем только «основной» материал(ы): храним их в userData построителя */
+function retint(rec, hex) {
+  const list = rec.mesh.userData.tintMats;
+  if (list && list.length) list.forEach(m => m.color.set(hex));
+  else rec.mesh.traverse(o => { if (o.isMesh && o.material && o.material.color) o.material.color.set(hex); });
+}
+
+function runProgram() {
+  stopProgram(false);                              // без лишнего лога
+  baselineSnapshot = serializeScene(false);        // снимок геометрии до запуска
+  const code = Blockly.JavaScript.workspaceToCode(blocklyWs);
+  clog('▶ Запуск программы…', 'cmd');
+  let R;
+  try {
+    R = makeRuntime();
+    new Function('rt', '"use strict";\n' + code)(R);
+  } catch (e) {
+    clog('Ошибка компиляции: ' + e.message, 'err');
+    return;
+  }
+  runtimeRef = R; runtimeActive = true;
+  R.starts.forEach(cb => { Promise.resolve().then(() => cb()).catch(e => clog('Ошибка в «когда запускается»: ' + e.message, 'err')); });
+  $('#btnRun').disabled = false;
+  $('#btnStop').disabled = false;
+  $('#btnRun').innerHTML = '↺ <span>Ещё раз</span>';
+  clog('Программа работает: событий ' + (R.starts.length + Object.keys(R.handlers).length + R.timers.length) + '. ■ Стоп — вернуть сцену.', 'ok');
+}
+function stopProgram(announce) {
+  if (runtimeRef) {
+    runtimeRef.timers.forEach(clearInterval);
+    runtimeRef = null;
+  }
+  const wasActive = runtimeActive;
+  runtimeActive = false;
+  if (baselineSnapshot) { try { deserializeScene(baselineSnapshot); } catch (e) {} baselineSnapshot = null; }
+  $('#btnStop').disabled = true;
+  $('#btnRun').innerHTML = '▶ Запустить';
+  if (announce !== false && wasActive) clog('■ Программа остановлена, сцена возвращена к исходному состоянию.', 'cmd');
+}
+$('#btnRun').addEventListener('click', runProgram);
+$('#btnStop').addEventListener('click', () => stopProgram(true));
+
+/* ── 10. Осциллограф кадра ─────────────────────────────── */
+const oscCanvas = $('#oscCanvas');
+const oscCtx = oscCanvas.getContext('2d');
+const FRAME_RING = 240;
+const frameRing = new Float32Array(FRAME_RING).fill(16.7);
+let ringIdx = 0, ringCount = 0;
+const fpsHistory = [];
+function drawOscilloscope() {
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  const w = oscCanvas.clientWidth, h = oscCanvas.clientHeight;
+  if (w === 0) return;
+  if (oscCanvas.width !== w * dpr || oscCanvas.height !== h * dpr) { oscCanvas.width = w * dpr; oscCanvas.height = h * dpr; }
+  const x = oscCtx; x.setTransform(dpr, 0, 0, dpr, 0, 0);
+  x.fillStyle = '#050a16'; x.fillRect(0, 0, w, h);
+  // сетка «осциллографа»
+  x.strokeStyle = 'rgba(52,211,153,0.14)'; x.lineWidth = 1;
+  for (let i = 1; i < 8; i++) { x.beginPath(); x.moveTo(0, h * i / 8); x.lineTo(w, h * i / 8); x.stroke(); }
+  for (let i = 1; i < 12; i++) { x.beginPath(); x.moveTo(w * i / 12, 0); x.lineTo(w * i / 12, h); x.stroke(); }
+  x.strokeStyle = 'rgba(52,211,153,0.3)'; x.beginPath(); x.moveTo(0, h / 2); x.lineTo(w, h / 2); x.stroke();
+  // линия кадрового времени (0..33 мс = полная шкала)
+  const maxMs = 33.3;
+  x.strokeStyle = '#34d399'; x.lineWidth = 2; x.shadowColor = '#34d399'; x.shadowBlur = 7;
+  x.beginPath();
+  const N = Math.min(ringCount, FRAME_RING);
+  for (let i = 0; i < N; i++) {
+    const idx = (ringIdx - N + i + FRAME_RING) % FRAME_RING;
+    const px = (i / (FRAME_RING - 1)) * w;
+    const py = h - clamp(frameRing[idx] / maxMs, 0, 1) * (h - 8) - 4;
+    i ? x.lineTo(px, py) : x.moveTo(px, py);
+  }
+  x.stroke(); x.shadowBlur = 0;
+  x.fillStyle = 'rgba(52,211,153,0.75)'; x.font = '11px monospace'; x.fillText('33 мс = 30 FPS  ·  16,7 мс = 60 FPS', 10, 16);
+}
+function pushFrame(ms) { frameRing[ringIdx] = ms; ringIdx = (ringIdx + 1) % FRAME_RING; ringCount = Math.min(ringCount + 1, FRAME_RING); }
+let statTick = 0;
+function updateStats() {
+  if (++statTick % 18 !== 0) return;
+  const avg = frameRing.reduce((a, b) => a + b, 0) / Math.max(1, Math.min(ringCount, FRAME_RING));
+  const fps = clamp(1000 / Math.max(avg, 0.01), 0, 240);
+  const fpsEl = $('#stFps'); fpsEl.textContent = Math.round(fps);
+  fpsEl.className = 'v ' + (fps >= 50 ? 'ok' : fps >= 25 ? 'warn' : 'err');
+  $('#stMs').innerHTML = avg.toFixed(1) + ' <small>мс</small>';
+  $('#stObj').textContent = objects.length;
+  $('#stCalls').textContent = renderer.info.render.calls;
+  $('#stTris').textContent = (renderer.info.render.triangles / 1000).toFixed(1) + 'k';
+  const badge = $('#fpsBadge'); badge.innerHTML = Math.round(fps) + ' <small>FPS</small>';
+  badge.style.color = fps >= 50 ? 'var(--ok)' : fps >= 25 ? 'var(--warn)' : 'var(--err)';
+}
+function drawOsc() { drawOscilloscope(); }
+let vrSessionActive = false;
+
+/* ── 11. Физика (гравитация, отскок от пола) ─────────────── */
+const GRAV = 12.5;
+function stepPhysics(dt) {
+  for (const o of objects) {
+    if (!o.gravity) continue;
+    let vy = o.mesh.userData.velY || 0;
+    vy -= GRAV * dt;
+    let y = o.pos[1] + vy * dt;
+    if (y <= 0) {
+      y = 0;
+      if (Math.abs(vy) > 2.2) { Sound.play('thump'); vy = -vy * 0.42; } else vy = 0;
+    }
+    o.mesh.userData.velY = vy; o.pos[1] = y;
+    o.mesh.position.y = y;
+    if (o.id === selectedId && document.activeElement !== $('#propY')) $('#propY').value = y.toFixed(2);
+  }
+}
+
+/* ── 12. Главный цикл и размер ─────────────────────────── */
+const clock = new THREE.Clock();
+let lastFrameT = performance.now();
+let oscTick = 0;
+function animate() {
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const now = performance.now();
+  pushFrame(Math.min(150, now - lastFrameT)); lastFrameT = now;
+  stepPhysics(dt);
+  updateCamera(dt);
+  if (selectionHelper) selectionHelper.update();
+  updateStats();
+  renderer.render(scene, camera);
+  if (!vrSessionActive && (++oscTick % 3 === 0)) drawOscilloscope();
+}
+renderer.setAnimationLoop(animate);
+
+function fitViewport() {
+  const w = viewport.clientWidth, h = viewport.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / Math.max(1, h); camera.updateProjectionMatrix();
+  if (blocklyWs) Blockly.svgResize(blocklyWs);
+}
+new ResizeObserver(fitViewport).observe(viewport);
+window.addEventListener('resize', fitViewport);
+/* ── 13. Левая панель: библиотека и список сцены ────────── */
+const libGrid = $('#libGrid');
+CATALOG.forEach(item => {
+  const btn = document.createElement('button');
+  btn.className = 'lib-item';
+  btn.innerHTML = '<span class="ic">' + item.icon + '</span><span class="nm">' + esc(item.name) + '</span>';
+  btn.title = 'Добавить «' + item.name + '» на сцену';
+  btn.addEventListener('click', () => {
+    const rec = addObject(item.key, {});
+    selectObject(rec.id);
+    Sound.play('клик');
+    showToast('«' + rec.name + '» добавлен на сцену');
+  });
+  libGrid.appendChild(btn);
+});
+
+$('#tabAdd').addEventListener('click', () => switchLeftTab('add'));
+$('#tabScene').addEventListener('click', () => switchLeftTab('scene'));
+function switchLeftTab(which) {
+  $('#tabAdd').classList.toggle('active', which === 'add');
+  $('#tabScene').classList.toggle('active', which === 'scene');
+  $('#pageAdd').classList.toggle('hidden', which !== 'add');
+  $('#pageScene').classList.toggle('hidden', which !== 'scene');
+}
+function renderObjList() {
+  const list = $('#objList'); list.innerHTML = '';
+  $('#sceneEmpty').style.display = objects.length ? 'none' : 'block';
+  objects.forEach(o => {
+    const row = document.createElement('div');
+    row.className = 'obj-row' + (o.id === selectedId ? ' selected' : '');
+    row.innerHTML =
+      '<span class="dot" style="background:' + esc(o.color) + '"></span>' +
+      '<span class="nm" title="' + esc(o.name) + '">' + esc(o.name) + '</span>' +
+      '<button data-act="eye" title="Показать/скрыть">' + (o.visible !== false ? '👁' : '🚫') + '</button>' +
+      '<button data-act="del" title="Удалить">🗑</button>';
+    row.addEventListener('click', e => {
+      const act = e.target.dataset && e.target.dataset.act;
+      if (act === 'del') { removeObject(o.id); Sound.play('ошибка'); return; }
+      if (act === 'eye') { o.visible = o.visible === false; o.mesh.visible = o.visible; renderObjList(); return; }
+      selectObject(o.id);
+    });
+    list.appendChild(row);
+  });
+}
+
+/* ── 14. Правая панель: свойства ────────────────────────── */
+const rpEmpty = $('#rpEmpty'), rpProps = $('#rpProps');
+function updatePropsPanel() {
+  const rec = selectedId ? findById(selectedId) : null;
+  rpEmpty.style.display = rec ? 'none' : 'block';
+  rpProps.style.display = rec ? 'block' : 'none';
+  if (rec) syncPropInputs(rec);
+}
+function syncPropInputs(rec) {
+  if (document.activeElement !== $('#propName')) $('#propName').value = rec.name;
+  $('#propX').value = (+rec.pos[0]).toFixed(2); $('#propY').value = (+rec.pos[1]).toFixed(2); $('#propZ').value = (+rec.pos[2]).toFixed(2);
+  $('#propRotY').value = ((rec.rotYDeg % 360) + 360) % 360;
+  $('#propScale').value = rec.scale;
+  $('#propColor').value = /^#([0-9a-f]{6})$/i.test(rec.color) ? rec.color : '#8f7bff';
+  $('#propGravity').checked = !!rec.gravity;
+}
+function selectedRec() { return selectedId ? findById(selectedId) : null; }
+function applyTransform(rec) {
+  rec.mesh.position.set(rec.pos[0], rec.pos[1], rec.pos[2]);
+  rec.mesh.rotation.y = rec.rotYDeg * Math.PI / 180;
+  rec.mesh.scale.setScalar(rec.scale);
+  if (selectionHelper) { selectionHelper.update(); }
+}
+$('#propName').addEventListener('change', e => {
+  const rec = selectedRec(); if (!rec) return;
+  const v = e.target.value.trim() || rec.name;
+  rec.name = uniqueName(v); e.target.value = rec.name; refreshObjectDropdowns(); renderObjList();
+});
+[['propX',0],['propY',1],['propZ',2]].forEach(([id, axis]) => {
+  $('#' + id).addEventListener('input', e => { const rec = selectedRec(); if (!rec) return; const v = parseFloat(e.target.value); if (!isNaN(v)) { rec.pos[axis] = v; applyTransform(rec); } });
+});
+$('#propRotY').addEventListener('input', e => { const rec = selectedRec(); if (rec) { rec.rotYDeg = parseFloat(e.target.value) || 0; applyTransform(rec); } });
+$('#propScale').addEventListener('input', e => { const rec = selectedRec(); if (rec) { rec.scale = parseFloat(e.target.value) || 1; applyTransform(rec); } });
+$('#propColor').addEventListener('input', e => { const rec = selectedRec(); if (rec) { rec.color = e.target.value; retint(rec, rec.color); renderObjList(); } });
+$('#propGravity').addEventListener('change', e => { const rec = selectedRec(); if (rec) { rec.gravity = e.target.checked; rec.mesh.userData.velY = 0; } });
+$('#btnDelete').addEventListener('click', () => { const rec = selectedRec(); if (rec) { const n = rec.name; removeObject(rec.id); Sound.play('ошибка'); showToast('«' + n + '» удалён'); } });
+$('#btnDuplicate').addEventListener('click', () => { const rec = selectedRec(); if (rec) { const c = duplicateObject(rec.id); if (c) showToast('Создан двойник «' + c.name + '»'); } });
+
+/* ── 15. Инструменты вьюпорта ──────────────────────────── */
+$('#toolOrbit').addEventListener('click', () => { $('#toolOrbit').classList.add('active'); $('#toolMove').classList.remove('active'); Sound.play('ui'); });
+$('#toolMove').addEventListener('click', () => { $('#toolMove').classList.add('active'); $('#toolOrbit').classList.remove('active'); Sound.play('ui'); showToast('Тяни выбранный объект мышью. Shift — шаг 0,5 м'); });
+$('#btnView').addEventListener('click', () => setViewMode(viewMode === 'orbit' ? 'fp' : 'orbit'));
+$('#btnSound').addEventListener('click', function() { const on = Sound.toggle(); this.textContent = on ? '🔊' : '🔇'; if (on) Sound.play('ui'); });
+
+/* ── 16. Нижняя панель (блоки / консоль / осциллограф) ───── */
+const drawer = $('#drawer');
+const DTABS = [ ['dtabCode','codePage'], ['dtabConsole','consolePage'], ['dtabOsc','oscPage'] ];
+DTABS.forEach(([btnId, pageId]) => $('#' + btnId).addEventListener('click', () => {
+  DTABS.forEach(([b, p]) => { $('#' + b).classList.toggle('active', b === btnId); $('#' + p).classList.toggle('active', p === pageId); });
+  if (pageId === 'consolePage') { consoleErrors = 0; $('#consoleBadge').classList.remove('on'); }
+  if (pageId === 'codePage' && blocklyWs) setTimeout(() => Blockly.svgResize(blocklyWs), 60);
+  if (pageId === 'oscPage') drawOscilloscope();
+  Sound.play('ui');
+}));
+$('#drawerCollapse').addEventListener('click', () => drawer.classList.remove('open'));
+$('#drawerOpenFab').addEventListener('click', () => { drawer.classList.add('open'); setTimeout(() => blocklyWs && Blockly.svgResize(blocklyWs), 250); });
+/* ── 17. Шаблоны миров ─────────────────────────────────── */
+BUILDERS.saturn = function() {
+  const t = mat('#e3cf9f', .55), ring = mat('#d9c08a', .45, .35, '#8a7648', .25);
+  const rg = M(new THREE.TorusGeometry(.92,.09,10,44), ring, 0,.62,0); rg.rotation.x = Math.PI / 2.18;
+  return { group: g([M(new THREE.SphereGeometry(.62,26,18), t, 0,.62,0), rg]), tint: [t] };
+};
+function applyTemplate(name, skipConfirm) {
+  const doIt = () => {
+    clearSceneObjects();
+    if (name === 'space') {
+      scene.background = new THREE.Color(0x03040d); scene.fog = null; stars.visible = true; ground.visible = false;
+      addObject('sun',    { name:'Солнце', pos:[-10.5, 6.2, -9], scale:2.15 });
+      addObject('sphere', { name:'Земля',  pos:[2.4, 1.0, 1.8],  scale:1.05, color:'#3a7bd5' });
+      addObject('sphere', { name:'Марс',   pos:[5.6, 0.62, -2.4],scale:0.68, color:'#c1440e' });
+      addObject('sphere', { name:'Юпитер', pos:[-3.6, 2.05, 3.2],scale:1.55, color:'#d8b98a' });
+      addObject('saturn', { name:'Сатурн', pos:[0.6, 3.15, -4.6],scale:1.12, color:'#e3cf9f' });
+      cam.target.set(0, 1.6, 0); cam.radius = 13; cam.theta = 0.82; cam.phi = 1.12;
+      showToast('Шаблон «Космос» — нажми ▶ Запустить!');
+    } else if (name === 'museum') {
+      scene.background = new THREE.Color(0x2a211b); scene.fog = new THREE.Fog(0x2a211b, 30, 72); ground.visible = true;
+      const P = [ [-4.2,-1.6], [0,-3.1], [4.2,-1.6], [0,1.6] ];
+      const ex = [ ['sphere','Экспонат «Шар времени»','#d4af37', .58, 1.0], ['torus','Экспонат «Золотое кольцо»','#f472b6', .5, .95], ['pyramid','Экспонат «Малая пирамида»','#22d3ee', .62, .78], ['cone','Экспонат «Ракета»','#fda4af', .6, .8] ];
+      P.forEach((p, i) => {
+        addObject('cylinder', { name:'Пьедестал ' + (i+1), pos:[p[0], 0, p[1]], scale:0.74, color:'#cdbb9d' });
+        addObject(ex[i][0], { name:ex[i][1], pos:[p[0], 0.88, p[1]], scale:ex[i][3], color:ex[i][2] });
+      });
+      addObject('box', { name:'Скамейка 1', pos:[-2.2, 0, 3.4], scale:0.78, color:'#4a3728' });
+      addObject('box', { name:'Скамейка 2', pos:[ 2.2, 0, 3.4], scale:0.78, color:'#4a3728' });
+      cam.target.set(0, 1.1, 0); cam.radius = 12; cam.theta = 0.5; cam.phi = 1.15;
+      showToast('Шаблон «Музей». Кликни по экспонату!');
+    } else if (name === 'class') {
+      scene.background = new THREE.Color(0x1f2737); scene.fog = new THREE.Fog(0x1f2737, 30, 78); ground.visible = true;
+      [-2.5, 2.5].forEach(x => [ -0.8, 1.4, 3.6 ].forEach((z, i) => addObject('box', { name:'Парта ' + (i+1) + (x < 0 ? 'А' : 'Б'), pos:[x, 0, z], scale:0.82, color:'#7a5230' })));
+      addObject('board',  { name:'Доска',          pos:[0, 0, -4.4] });
+      addObject('box',    { name:'Стол учителя',   pos:[-1.6, 0, -2.3], scale:1.12, color:'#5d4632' });
+      addObject('sphere', { name:'Глобус',         pos:[-1.6, 1.14, -2.3], scale:0.52, color:'#2f6fd0' });
+      addObject('ufo',    { name:'Проектор НЛО',   pos:[1.9, 0.95, -2.3], scale:0.42, color:'#7dd3fc' });
+      cam.target.set(0, 1.2, 0.5); cam.radius = 12.5; cam.theta = 0.12; cam.phi = 1.08;
+      showToast('Шаблон «Класс» готов к уроку!');
+    } else {
+      showToast('Пустая сцена — собери свой мир!');
+    }
+    selectObject(null); refreshAfterSceneChange();
+  };
+  if (skipConfirm || objects.length === 0) doIt();
+  else showModal({
+    title: 'Заменить текущую сцену?',
+    body: '<p>Шаблон заменит <b>' + objects.length + ' объект(ов)</b> на сцене. Несохранённая работа пропадёт.</p>',
+    buttons: [ { label:'Отмена', cls:'btn-plain' }, { label:'Заменить', cls:'btn-primary', onClick: doIt } ]
+  });
+}
+$('#btnClear').addEventListener('click', () => {
+  if (!objects.length) return showToast('И так пусто 🙂');
+  showModal({
+    title: 'Очистить сцену?',
+    body: '<p>Все объекты (' + objects.length + ') будут удалены. Блоки кода останутся.</p>',
+    buttons: [ { label:'Отмена', cls:'btn-plain' }, { label:'Удалить всё', cls:'btn-primary', onClick: () => { clearSceneObjects(); selectObject(null); refreshAfterSceneChange(); Sound.play('ошибка'); } } ]
+  });
+});
+
+/* ── 18. Меню: выпадашки ───────────────────────────────── */
+function wireMenu(btnId, menuId) {
+  const btn = $('#' + btnId), menu = $('#' + menuId);
+  btn.addEventListener('click', e => { e.stopPropagation(); $$('.menu.open').forEach(m => { if (m !== menu) m.classList.remove('open'); }); menu.classList.toggle('open'); Sound.play('ui'); });
+  menu.addEventListener('click', e => e.stopPropagation());
+}
+wireMenu('btnTemplates', 'menuTemplates');
+wireMenu('btnSaveMenu', 'menuSave');
+document.addEventListener('click', () => $$('.menu.open').forEach(m => m.classList.remove('open')));
+$$('#menuTemplates [data-tpl]').forEach(b => b.addEventListener('click', () => { $('#menuTemplates').classList.remove('open'); applyTemplate(b.dataset.tpl, false); }));
+
+/* ── 19. Сохранение / загрузка / ссылка ─────────────────── */
+const SAVES_KEY = 'urokvr.saves.v1';
+function readSaves() { try { return JSON.parse(localStorage.getItem(SAVES_KEY)) || {}; } catch (e) { return {}; } }
+function writeSaves(s) { try { localStorage.setItem(SAVES_KEY, JSON.stringify(s)); } catch (e) { showToast('Хранилище переполнено — скачайте .json'); } }
+function renderSaves() {
+  const box = $('#saveList'); const saves = readSaves(); const names = Object.keys(saves).sort((a,b) => (saves[b].ts||0) - (saves[a].ts||0));
+  box.innerHTML = names.length ? '' : '<div class="empty-saves">Сохранений нет.<br>Впиши название выше и нажми «Сохран.»</div>';
+  names.forEach(name => {
+    const item = document.createElement('div'); item.className = 'save-item';
+    const d = saves[name].ts ? new Date(saves[name].ts).toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '';
+    item.innerHTML = '<span class="nm" title="Открыть">' + esc(name) + '</span><span class="dt">' + esc(d) + '</span><button title="Удалить">🗑</button>';
+    item.querySelector('.nm').addEventListener('click', () => {
+      try { deserializeScene(saves[name].data); $('#menuSave').classList.remove('open'); showToast('«' + name + '» открыт'); }
+      catch (e) { showToast('Не удалось открыть: ' + e.message); }
+    });
+    item.querySelector('button').addEventListener('click', () => { const s = readSaves(); delete s[name]; writeSaves(s); renderSaves(); });
+    box.appendChild(item);
+  });
+}
+$('#btnDoSave').addEventListener('click', () => {
+  const input = $('#saveName');
+  const name = input.value.trim() || 'Мой проект ' + new Date().toLocaleDateString('ru-RU');
+  const saves = readSaves();
+  saves[name] = { ts: Date.now(), data: serializeScene(true) };
+  writeSaves(saves); renderSaves(); input.value = ''; Sound.play('дзинь');
+  showToast('Сохранено: «' + name + '»');
+});
+$('#saveName').addEventListener('keydown', e => { if (e.key === 'Enter') $('#btnDoSave').click(); e.stopPropagation(); });
+$('#btnExportJson').addEventListener('click', () => {
+  const data = serializeScene(true);
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = ($('#saveName').value.trim() || 'urokvr-project').replace(/[^\wа-яА-ЯёЁ -]+/gi,'').trim().replace(/\s+/g,'-') + '.urokvr.json';
+  a.click(); URL.revokeObjectURL(a.href);
+  $('#menuSave').classList.remove('open');
+});
+$('#btnImportJson').addEventListener('click', () => $('#fileImport').click());
+$('#fileImport').addEventListener('change', e => {
+  const f = e.target.files[0]; if (!f) return;
+  f.text().then(txt => { try { deserializeScene(JSON.parse(txt)); $('#menuSave').classList.remove('open'); showToast('Проект загружен из файла'); } catch (err) { showToast('Ошибка файла: ' + err.message); } });
+  e.target.value = '';
+});
+$('#btnCopyLink').addEventListener('click', () => {
+  try {
+    const url = location.href.split('#')[0] + '#p=' + b64encode(serializeScene(true));
+    copyText(url); $('#menuSave').classList.remove('open'); showToast('Ссылка скопирована! Открой на любом устройстве 🔗');
+  } catch (e) { showToast('Не вышло: ' + e.message); }
+});
+function copyText(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text);
+  const ta = document.createElement('textarea'); ta.value = text; ta.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); } catch (e) {} document.body.removeChild(ta);
+}
+
+/* ── 20. Модалки и тосты ───────────────────────────────── */
+const modalOverlay = $('#modalOverlay');
+function showModal(opts) {
+  $('#modalTitle').textContent = opts.title || '';
+  $('#modalBody').innerHTML = opts.body || '';
+  const foot = $('#modalFoot'); foot.innerHTML = '';
+  (opts.buttons || [ { label:'OK', cls:'btn-primary' } ]).forEach(b => {
+    const btn = document.createElement('button');
+    btn.textContent = b.label; btn.className = b.cls || 'btn-plain';
+    btn.addEventListener('click', () => { closeModal(); if (b.onClick) b.onClick(); });
+    foot.appendChild(btn);
+  });
+  modalOverlay.classList.add('open');
+}
+function closeModal() { modalOverlay.classList.remove('open'); }
+$('#modalClose').addEventListener('click', closeModal);
+modalOverlay.addEventListener('click', e => { if (e.target === modalOverlay) closeModal(); });
+let toastTimer = null;
+function showToast(msg, ms) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), ms || 2800);
+}
+/* ── 21. WebXR: «В шлеме» ─────────────────────────────── */
+let xrSession = null;
+$('#btnVR').addEventListener('click', async () => {
+  if (vrSessionActive && xrSession) { xrSession.end(); return; }
+  if (!navigator.xr) return vrUnavailable('Браузер не поддерживает WebXR.');
+  let supported = false;
+  try { supported = await navigator.xr.isSessionSupported('immersive-vr'); } catch (e) { supported = false; }
+  if (!supported) return vrUnavailable('На этом устройстве иммерсивный VR недоступен.');
+  try {
+    renderer.xr.enabled = true;
+    if (renderer.xr.setReferenceSpaceType) renderer.xr.setReferenceSpaceType('local-floor');
+    xrSession = await navigator.xr.requestSession('immersive-vr', { optionalFeatures: ['local-floor', 'bounded-floor'] });
+    xrSession.addEventListener('end', () => {
+      vrSessionActive = false; xrSession = null; renderer.xr.enabled = false;
+      $('#btnVR').innerHTML = '🥽 В шлеме'; showToast('VR-сеанс завершён');
+    });
+    await renderer.xr.setSession(xrSession);
+    vrSessionActive = true;
+    $('#btnVR').innerHTML = '⏹ Выйти из VR';
+    showToast('Надеваем шлем — сцена уже внутри 🥽');
+  } catch (e) {
+    renderer.xr.enabled = false;
+    showToast('Не удалось запустить VR: ' + e.message);
+  }
+});
+function vrUnavailable(reason) {
+  showModal({
+    title: '🥽 VR-режим',
+    body: '<p>' + esc(reason) + '</p>' +
+      '<h4>Как это должно работать</h4>' +
+      '<ul><li>Открой эту страницу <b>в браузере гарнитуры</b>: Oculus Quest / Meta Quest, Pico 4 — их встроенный браузер (Chromium, WebXR из коробки).</li>' +
+      '<li>Страница должна быть доступна по <b>https://</b> (или с этого же компьютера в локальной сети).</li>' +
+      '<li>На ПК сцена полноценно работает и <b>без шлема</b>: режим «🚶 От первого лица» + WASD — это и есть «VR на мониторе» для занятий без гарнитур (их обычно меньше, чем учеников).</li></ul>' +
+      '<h4>AR-направление</h4>' +
+      '<ul><li>Дополненная реальность на телефоне: <b>Модуль Б</b> концепции (AR.js-маркеры и WebXR-AR на Android) — делается следующим шагом после пилота модуля А.</li></ul>',
+    buttons: [ { label:'Понятно', cls:'btn-primary' } ]
+  });
+}
+
+/* ── 22. Справка ───────────────────────────────────────── */
+$('#btnHelp').addEventListener('click', () => {
+  showModal({
+    title: '📖 Как пользоваться УрокVR',
+    body:
+      '<h4>За 30 секунд</h4><ol><li>Слева — библиотека: кликни объект, он появится в сцене.</li>' +
+      '<li>Клик по объекту — выделить; справа меняются имя, позиция, цвет, гравитация.</li>' +
+      '<li>Внизу — блоки. По умолчанию там «🏁 когда запускается программа → 💬 надпись».</li>' +
+      '<li>Жми <kbd>▶ Запустить</kbd> — сцена сбросится и выполнит код. <kbd>■ Стоп</kbd> — вернуть как было.</li></ol>' +
+      '<h4>Имена = адреса</h4><p>«Кнопка 1» в сцене — это «Кнопка 1» в блоке «🖱 когда кликнут по…». Переименовал — обнови и в блоках.</p>' +
+      '<h4>Мышь и клавиатура</h4><ul>' +
+      '<li><kbd>ЛКМ</kbd>+движение — осмотр · колесо — зум · <kbd>ПКМ</kbd> — сдвиг</li>' +
+      '<li>Режим «↔ Перемещение»: тяни выбранный объект (<kbd>Shift</kbd> — шаг 0,5 м)</li>' +
+      '<li>От 1-го лица: <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / стрелки, <kbd>Shift</kbd> — бег</li>' +
+      '<li><kbd>Ctrl</kbd>+<kbd>Enter</kbd> — запустить · <kbd>Ctrl</kbd>+<kbd>S</kbd> — сохранение · <kbd>Delete</kbd> — удалить объект · <kbd>Ctrl</kbd>+<kbd>D</kbd> — дублировать</li></ul>' +
+      '<h4>Осциллограф 📈</h4><p>Вкладка «📈 Осциллограф» показывает график времени кадра (33 мс = 30 FPS, провал ниже — сцена «тяжёлая»), число отрисовок и треугольников — почти как осциллограф на физике, только для графики.</p>' +
+      '<h4>Идеи для занятий</h4><ul>' +
+      '<li><b>«Нажми и взорвись»</b>: Кнопка + «когда кликнут по Кнопка 1» → «подбросить Шар 1 с силой 12» + звук «взрыв».</li>' +
+      '<li><b>Светофор</b>: 3 шара, блок «каждые 2 сек» + «перекрасить» — конечный автомат на блоках.</li>' +
+      '<li><b>Гравитация и орбита</b>: у планет выключена гравитация, у «спутника» включена + «подбросить» — видно баллистику.</li></ul>',
+    buttons: [ { label:'Отлично!', cls:'btn-primary' } ]
+  });
+});
+
+/* ── 23. Горячие клавиши ───────────────────────────────── */
+const TYPING = el => el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable);
+document.addEventListener('keydown', e => {
+  if (TYPING(e.target)) return;
+  if (e.code === 'KeyW' || e.code === 'KeyA' || e.code === 'KeyS' || e.code === 'KeyD' ||
+      e.code.startsWith('Arrow')) { fp.keys.add(e.code === 'KeyW' ? 'KeyW' : e.code); if (viewMode === 'fp' && e.code.startsWith('Arrow')) e.preventDefault(); }
+  if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') fp.keys.add('shift');
+  if ((e.ctrlKey || e.metaKey) && e.code === 'Enter') { e.preventDefault(); runProgram(); }
+  else if ((e.ctrlKey || e.metaKey) && e.code === 'KeyS') { e.preventDefault(); $('#menuSave').classList.toggle('open'); }
+  else if ((e.ctrlKey || e.metaKey) && e.code === 'KeyD') { e.preventDefault(); const rec = selectedRec(); if (rec) duplicateObject(rec.id); }
+  else if (e.key === 'Delete' || e.key === 'Backspace') { const rec = selectedRec(); if (rec) { removeObject(rec.id); showToast('«' + rec.name + '» удалён'); } }
+  else if (e.key === 'Escape') { closeModal(); $$('.menu.open').forEach(m => m.classList.remove('open')); }
+});
+document.addEventListener('keyup', e => {
+  fp.keys.delete(e.code);
+  if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') fp.keys.delete('shift');
+});
+
+/* ── 24. Старт приложения ──────────────────────────────── */
+initBlockly();
+fitViewport();
+renderSaves();
+
+let bootedFromLink = false;
+if (location.hash.startsWith('#p=')) {
+  try { deserializeScene(b64decode(location.hash.slice(3))); bootedFromLink = true; clog('🔗 Проект открыт по ссылке.', 'ok'); }
+  catch (e) { clog('Не удалось открыть проект по ссылке: ' + e.message, 'err'); }
+}
+if (!bootedFromLink) applyTemplate('space', true);
+
+clog('УрокVR готов. Слева — библиотека, справа — свойства, снизу — блоки кода.', 'cmd');
+clog('Подсказка: нажми «▶ Запустить» — выполнится блок «когда запускается программа».', 'info');
+setTimeout(() => blocklyWs && Blockly.svgResize(blocklyWs), 120);
+</script>
+</body>
+</html>
